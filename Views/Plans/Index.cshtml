@@ -1,0 +1,117 @@
+@model List<FitManager.Models.Plan>
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Planes";
+    ViewData["BreadcrumbParent"] = "Cuotas y Pagos";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-layer-group me-2 text-accent"></i>Planes de Membresía</h1>
+        <p class="text-muted mb-0">@Model.Count planes registrados</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-accent">
+            <i class="fas fa-plus me-2"></i>Nuevo Plan
+        </a>
+    </div>
+</div>
+
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="plansTable" class="table table-hover table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Precio</th>
+                        <th>Duración</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var plan in Model)
+                    {
+                        <tr>
+                            <td class="text-muted">@plan.Id</td>
+                            <td>
+                                <strong>@plan.Name</strong>
+                                @if (!string.IsNullOrEmpty(plan.Description))
+                                {
+                                    <br /><small class="text-muted">@plan.Description</small>
+                                }
+                            </td>
+                            <td>
+                                @switch (plan.PlanType)
+                                {
+                                    case PlanType.Daily:   <span class="badge bg-info">Diario</span> break;
+                                    case PlanType.Weekly:  <span class="badge bg-warning text-dark">Semanal</span> break;
+                                    case PlanType.Monthly: <span class="badge bg-success">Mensual</span> break;
+                                    default:               <span class="badge bg-secondary">Personalizado</span> break;
+                                }
+                            </td>
+                            <td><strong class="text-accent">$@plan.Price.ToString("N0")</strong></td>
+                            <td>@plan.DurationDays días</td>
+                            <td>
+                                @if (plan.IsActive)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>Inactivo</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Edit" asp-route-id="@plan.Id" class="btn btn-sm btn-outline-primary me-1" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Eliminar"
+                                        onclick="confirmDelete(@plan.Id, '@plan.Name')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete form -->
+<form id="deleteForm" method="post" asp-action="Delete">
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="deleteId" name="id" />
+</form>
+
+@section Scripts {
+<script>
+    $('#plansTable').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json' },
+        order: [[2, 'asc'], [3, 'asc']],
+        pageLength: 25
+    });
+
+    function confirmDelete(id, name) {
+        Swal.fire({
+            title: '¿Eliminar plan?',
+            text: `"${name}" será eliminado o desactivado si tiene suscriptores.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(r => {
+            if (r.isConfirmed) {
+                document.getElementById('deleteId').value = id;
+                document.getElementById('deleteForm').submit();
+            }
+        });
+    }
+</script>
+}

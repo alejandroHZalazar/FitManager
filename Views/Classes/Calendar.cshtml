@@ -1,0 +1,168 @@
+@model FitManager.ViewModels.ClassCalendarViewModel
+@using FitManager.Models
+@using FitManager.ViewModels
+@{
+    ViewData["Title"] = "Agenda Semanal";
+    ViewData["BreadcrumbParent"] = "Clases";
+
+    string FormatMonth(DateTime d) => d.ToString("MMMM", new System.Globalization.CultureInfo("es-AR"));
+    string CapFirst(string s) => string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0]) + s.Substring(1);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-calendar-week me-2 text-accent"></i>Agenda Semanal</h1>
+        <p class="text-muted mb-0">
+            @Model.WeekStart.Day al @Model.WeekEnd.Day de @CapFirst(FormatMonth(Model.WeekEnd)), @Model.WeekEnd.Year
+        </p>
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a asp-action="Index" asp-controller="Classes" class="btn btn-outline-secondary">
+            <i class="fas fa-list me-2"></i>Gestión de Clases
+        </a>
+    </div>
+</div>
+
+<!-- Week navigation -->
+<div class="card fm-card mb-4">
+    <div class="card-body py-2">
+        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+            <a asp-action="Calendar" asp-controller="Classes"
+               asp-route-week="@Model.PrevWeek.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-secondary">
+                <i class="fas fa-chevron-left me-1"></i>Anterior
+            </a>
+
+            <div class="d-flex align-items-center gap-2">
+                @if (!Model.IsCurrentWeek)
+                {
+                    <a asp-action="Calendar" asp-controller="Classes" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-home me-1"></i>Semana Actual
+                    </a>
+                }
+                <span class="fw-semibold text-white">
+                    @Model.WeekStart.ToString("dd/MM") — @Model.WeekEnd.ToString("dd/MM/yyyy")
+                </span>
+            </div>
+
+            <a asp-action="Calendar" asp-controller="Classes"
+               asp-route-week="@Model.NextWeek.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-secondary">
+                Siguiente<i class="fas fa-chevron-right ms-1"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 7-column calendar grid -->
+<div class="row g-3" id="calendarGrid">
+    @foreach (var day in Model.Days)
+    {
+        var colStyle = day.IsWeekend ? "opacity: 0.75;" : "";
+        var headerBorder = day.IsToday ? "border-bottom: 2px solid var(--fm-accent);" : "border-bottom: 1px solid var(--fm-border);";
+        var headerClass = day.IsToday ? "text-accent fw-bold" : (day.IsWeekend ? "text-muted" : "text-white");
+
+        <div class="col" style="min-width:0; @colStyle">
+            <!-- Day header -->
+            <div class="card fm-card h-100"
+                 style="@(day.IsToday ? "border-color: var(--fm-accent) !important;" : "")">
+                <div class="card-header py-2 text-center" style="@headerBorder background:transparent;">
+                    <div class="small text-uppercase text-muted" style="letter-spacing:.05em; font-size:.7rem;">
+                        @day.DayName
+                    </div>
+                    <div class="@headerClass" style="font-size:1.1rem; line-height:1.2;">
+                        @day.Date.Day
+                        @if (day.IsToday)
+                        {
+                            <span class="badge bg-accent ms-1" style="background:var(--fm-accent);font-size:.6rem;vertical-align:middle;">Hoy</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body p-2 d-flex flex-column gap-2">
+                    @if (!day.Slots.Any())
+                    {
+                        <div class="text-center text-muted py-3" style="font-size:.8rem;">
+                            <i class="fas fa-calendar-times d-block mb-1" style="opacity:.4;"></i>
+                            Sin clases
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var slot in day.Slots.OrderBy(s => s.StartTime))
+                        {
+                            var bgColor = slot.Color;
+                            <div class="calendar-slot rounded p-2"
+                                 style="background-color: @(bgColor)26; border-left: 3px solid @bgColor; font-size:.78rem;">
+                                <!-- Time -->
+                                <div class="text-muted mb-1" style="font-size:.7rem;">
+                                    <i class="fas fa-clock me-1"></i>
+                                    @slot.StartTime.ToString(@"hh\:mm") – @slot.EndTime.ToString(@"hh\:mm")
+                                    <span class="ms-1 opacity-75">(@slot.Duration)</span>
+                                </div>
+                                <!-- Class name -->
+                                <div class="fw-semibold text-white lh-sm mb-1">
+                                    <a asp-action="Detail" asp-controller="Classes" asp-route-id="@slot.ClassId"
+                                       class="text-white text-decoration-none">
+                                        @slot.ClassName
+                                    </a>
+                                </div>
+                                <!-- Instructor -->
+                                <div class="text-muted" style="font-size:.7rem;">
+                                    <i class="fas fa-user-tie me-1"></i>@slot.InstructorName
+                                </div>
+                                @if (!string.IsNullOrEmpty(slot.Location))
+                                {
+                                    <div class="text-muted" style="font-size:.7rem;">
+                                        <i class="fas fa-map-marker-alt me-1"></i>@slot.Location
+                                    </div>
+                                }
+                                <!-- Capacity badge -->
+                                <div class="mt-1">
+                                    @if (slot.IsFull)
+                                    {
+                                        <span class="badge bg-danger" style="font-size:.65rem;">
+                                            <i class="fas fa-lock me-1"></i>@slot.CapacityText
+                                        </span>
+                                    }
+                                    else if (slot.MaxCapacity.HasValue)
+                                    {
+                                        <span class="badge bg-dark border border-secondary" style="font-size:.65rem;">
+                                            <i class="fas fa-users me-1"></i>@slot.CapacityText
+                                        </span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(slot.ScheduleNotes))
+                                {
+                                    <div class="mt-1 text-muted fst-italic" style="font-size:.68rem;">
+                                        <i class="fas fa-info-circle me-1"></i>@slot.ScheduleNotes
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<style>
+#calendarGrid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .5rem;
+}
+#calendarGrid > .col {
+    flex: 1 0 130px;
+    max-width: 200px;
+}
+.calendar-slot {
+    transition: opacity .15s;
+}
+.calendar-slot:hover {
+    opacity: .9;
+}
+</style>
+}

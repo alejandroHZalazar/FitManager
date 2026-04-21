@@ -1,0 +1,152 @@
+@model FitManager.ViewModels.CashRegisterDetailViewModel
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Detalle de Caja";
+    ViewData["BreadcrumbParent"] = "Historial de Caja";
+    var r = Model.Register;
+    var isOpen = r.Status == CashRegisterStatus.Open;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-cash-register me-2 text-accent"></i>
+            Caja — @r.Date.ToString("dd/MM/yyyy")
+        </h1>
+        @if (isOpen)
+        {
+            <span class="badge bg-warning text-dark ms-2">Abierta</span>
+        }
+        else
+        {
+            <span class="badge bg-secondary ms-2">Cerrada</span>
+        }
+    </div>
+    <div class="page-actions">
+        <a asp-action="History" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Historial
+        </a>
+    </div>
+</div>
+
+<!-- Resumen -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-4">
+        <div class="card fm-card text-center py-3">
+            <div class="text-muted small">Cobros</div>
+            <div class="h4 text-success">$@Model.PaymentsTotal.ToString("N0")</div>
+            <div class="text-muted small">@Model.Payments.Count pago(s)</div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card fm-card text-center py-3">
+            <div class="text-muted small">Ing. Manuales / Egresos</div>
+            <div class="h5">
+                <span class="text-success">+$@Model.ManualIncome.ToString("N0")</span> /
+                <span class="text-danger">-$@Model.ManualExpense.ToString("N0")</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card fm-card text-center py-3">
+            <div class="text-muted small">Balance Neto</div>
+            <div class="h4">$@Model.NetBalance.ToString("N0")</div>
+            @if (r.ClosingBalance.HasValue)
+            {
+                var diff = r.ClosingBalance.Value - Model.NetBalance;
+                <div class="small @(Math.Abs(diff) < 0.01m ? "text-muted" : diff > 0 ? "text-success" : "text-danger")">
+                    Real: $@r.ClosingBalance.Value.ToString("N0")
+                    @if (Math.Abs(diff) > 0.01m) { <span>(@(diff > 0 ? "+" : "")$@diff.ToString("N0"))</span> }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Pagos -->
+    <div class="col-lg-7">
+        <div class="card fm-card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-money-bill-wave me-2 text-success"></i>Cobros</h6>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Payments.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm mb-0">
+                            <thead><tr><th>Socio</th><th>Concepto</th><th>Método</th><th class="text-end">Monto</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in Model.Payments)
+                                {
+                                    <tr>
+                                        <td>@p.Member?.FullName</td>
+                                        <td>@(p.Plan?.Name ?? p.Description)</td>
+                                        <td><span class="badge bg-secondary">@p.Method</span></td>
+                                        <td class="text-end text-accent">$@p.Amount.ToString("N0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot><tr><td colspan="3" class="text-end fw-bold">Total</td><td class="text-end text-accent fw-bold">$@Model.PaymentsTotal.ToString("N0")</td></tr></tfoot>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4 small"><i class="fas fa-inbox me-1"></i>Sin cobros.</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Transacciones manuales -->
+    <div class="col-lg-5">
+        <div class="card fm-card">
+            <div class="card-header"><h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Movimientos Manuales</h6></div>
+            <div class="card-body p-0">
+                @if (Model.Transactions.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var t in Model.Transactions)
+                        {
+                            <li class="list-group-item list-group-item-dark d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="small fw-bold">@t.Description</div>
+                                    <div style="font-size:.75rem" class="text-muted">@t.CreatedAt.ToString("HH:mm") — @t.Type</div>
+                                </div>
+                                <span class="@(t.Type == TransactionType.Income ? "text-success" : t.Type == TransactionType.Expense ? "text-danger" : "text-warning") fw-bold">
+                                    @(t.Type == TransactionType.Expense ? "-" : "+")$@t.Amount.ToString("N0")
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4 small">Sin movimientos manuales.</div>
+                }
+            </div>
+        </div>
+
+        <!-- Info de apertura/cierre -->
+        <div class="card fm-card mt-3">
+            <div class="card-body small">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Apertura:</span>
+                    <span>@r.OpenedAt.ToString("HH:mm") — @r.OpenedBy</span>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-muted">Saldo inicial:</span>
+                    <span>$@r.OpeningBalance.ToString("N0")</span>
+                </div>
+                @if (r.ClosedAt.HasValue)
+                {
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Cierre:</span>
+                        <span>@r.ClosedAt.Value.ToString("HH:mm") — @r.ClosedBy</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

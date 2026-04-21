@@ -1,0 +1,221 @@
+@model List<FitManager.Models.Payment>
+@using FitManager.Models
+@using FitManager.ViewModels
+@{
+    ViewData["Title"] = "Historial de Pagos";
+    ViewData["BreadcrumbParent"] = "Cuotas y Pagos";
+    var filter = (PaymentFilterViewModel)ViewBag.Filter;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-money-bill-wave me-2 text-accent"></i>Historial de Pagos</h1>
+        <p class="text-muted mb-0">@Model.Count registros</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-accent">
+            <i class="fas fa-plus me-2"></i>Registrar Pago
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card fm-card mb-4">
+    <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros</h6>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label small">Desde</label>
+                    <input type="date" name="From" class="form-control form-control-sm"
+                           value="@filter.From?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Hasta</label>
+                    <input type="date" name="To" class="form-control form-control-sm"
+                           value="@filter.To?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Socio</label>
+                    <select name="MemberId" class="form-select form-select-sm" asp-items="@ViewBag.Members">
+                        <option value="">— Todos —</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Plan</label>
+                    <select name="PlanId" class="form-select form-select-sm" asp-items="@ViewBag.Plans">
+                        <option value="">— Todos —</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Estado</label>
+                    <select name="Status" class="form-select form-select-sm">
+                        <option value="">— Todos —</option>
+                        <option value="1" selected="@(filter.Status == PaymentStatus.Paid)">Pagado</option>
+                        <option value="2" selected="@(filter.Status == PaymentStatus.Pending)">Pendiente</option>
+                        <option value="3" selected="@(filter.Status == PaymentStatus.Overdue)">Vencido</option>
+                    </select>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-sm btn-outline-accent w-100">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Totals -->
+@{
+    var totalPaid    = Model.Where(p => p.Status == PaymentStatus.Paid).Sum(p => p.Amount);
+    var totalPending = Model.Where(p => p.Status != PaymentStatus.Paid).Sum(p => p.Amount);
+}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card fm-card border-success">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle fa-2x text-success me-3"></i>
+                    <div>
+                        <div class="text-muted small">Cobrado</div>
+                        <div class="h5 mb-0 text-success">$@totalPaid.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fm-card border-warning">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-clock fa-2x text-warning me-3"></i>
+                    <div>
+                        <div class="text-muted small">Pendiente / Vencido</div>
+                        <div class="h5 mb-0 text-warning">$@totalPending.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fm-card">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-list fa-2x text-muted me-3"></i>
+                    <div>
+                        <div class="text-muted small">Total registros</div>
+                        <div class="h5 mb-0">@Model.Count</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="paymentsTable" class="table table-hover table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Socio</th>
+                        <th>Plan / Descripción</th>
+                        <th>Monto</th>
+                        <th>Método</th>
+                        <th>Estado</th>
+                        <th>Vencimiento</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@p.PaymentDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (p.Member != null)
+                                {
+                                    <a asp-controller="Members" asp-action="Payments" asp-route-id="@p.MemberId"
+                                       class="text-decoration-none">@p.Member.FullName</a>
+                                    <br /><small class="text-muted">@p.Member.MemberNumber</small>
+                                }
+                            </td>
+                            <td>
+                                @if (p.Plan != null)
+                                {
+                                    <span class="badge bg-secondary me-1">@p.Plan.Name</span>
+                                }
+                                @p.Description
+                            </td>
+                            <td><strong class="text-accent">$@p.Amount.ToString("N0")</strong></td>
+                            <td>
+                                @switch (p.Method)
+                                {
+                                    case PaymentMethod.Cash:     <i class="fas fa-money-bill text-success me-1"></i> break;
+                                    case PaymentMethod.Card:     <i class="fas fa-credit-card text-primary me-1"></i> break;
+                                    case PaymentMethod.Transfer: <i class="fas fa-exchange-alt text-info me-1"></i> break;
+                                    default:                     <i class="fas fa-circle-question text-muted me-1"></i> break;
+                                }
+                                @p.Method
+                            </td>
+                            <td>
+                                @switch (p.Status)
+                                {
+                                    case PaymentStatus.Paid:    <span class="badge bg-success">Pagado</span> break;
+                                    case PaymentStatus.Pending: <span class="badge bg-warning text-dark">Pendiente</span> break;
+                                    case PaymentStatus.Overdue: <span class="badge bg-danger">Vencido</span> break;
+                                    default:                    <span class="badge bg-secondary">@p.Status</span> break;
+                                }
+                            </td>
+                            <td class="text-nowrap text-muted small">@p.DueDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="confirmDelete(@p.Id)" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<form id="deleteForm" method="post" asp-action="Delete">
+    @Html.AntiForgeryToken()
+    <input type="hidden" id="deleteId" name="id" />
+</form>
+
+@section Scripts {
+<script>
+    $('#paymentsTable').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json' },
+        order: [[0, 'desc']],
+        pageLength: 25
+    });
+
+    function confirmDelete(id) {
+        Swal.fire({
+            title: '¿Eliminar pago?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(r => {
+            if (r.isConfirmed) {
+                document.getElementById('deleteId').value = id;
+                document.getElementById('deleteForm').submit();
+            }
+        });
+    }
+</script>
+}

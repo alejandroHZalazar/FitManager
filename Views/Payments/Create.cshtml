@@ -1,0 +1,320 @@
+@model FitManager.ViewModels.GlobalPaymentViewModel
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Registrar Pago";
+    ViewData["BreadcrumbParent"] = "Cuotas y Pagos";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-plus-circle me-2 text-accent"></i>Registrar Pago</h1>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card fm-card">
+            <div class="card-body">
+                <form asp-action="Create" method="post" id="paymentForm">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                    <!-- ── Buscador de socio ──────────────────────────────── -->
+                    <div class="mb-3">
+                        <label class="form-label">Socio <span class="text-danger">*</span></label>
+
+                        <!-- Campo oculto que se envía al servidor -->
+                        <input type="hidden" asp-for="MemberId" id="memberIdInput" />
+
+                        <!-- Chip del socio seleccionado -->
+                        <div id="memberSelected" class="d-none mb-2">
+                            <div class="d-flex align-items-center gap-2 p-2 rounded border border-secondary bg-dark">
+                                <img id="memberPhoto" src="" width="36" height="36"
+                                     class="rounded-circle d-none" style="object-fit:cover" />
+                                <div id="memberPhotoPlaceholder"
+                                     class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:36px;height:36px">
+                                    <i class="fas fa-user text-muted" style="font-size:.75rem"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div id="memberName" class="fw-bold lh-1"></div>
+                                    <div id="memberNumber" class="text-muted" style="font-size:.8rem"></div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                                        id="clearMember" title="Cambiar socio">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Caja de búsqueda -->
+                        <div id="memberSearchBox" class="position-relative">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="memberSearch" class="form-control"
+                                       placeholder="Buscar por nombre, apellido, Nº socio o DNI..."
+                                       autocomplete="off" />
+                            </div>
+                            <!-- Dropdown de resultados -->
+                            <div id="memberDropdown"
+                                 class="position-absolute w-100 border border-secondary rounded mt-1 d-none"
+                                 style="z-index:1050;max-height:260px;overflow-y:auto;background:#1e1e2e">
+                            </div>
+                        </div>
+
+                        <span asp-validation-for="MemberId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- ── Plan ──────────────────────────────────────────── -->
+                    <div class="mb-3">
+                        <label asp-for="PlanId" class="form-label"></label>
+                        <select asp-for="PlanId" asp-items="@Model.Plans" class="form-select" id="planSelect">
+                            <option value="">— Sin plan (pago libre) —</option>
+                        </select>
+                        <small class="text-muted">Al seleccionar un plan el monto y vencimiento se completan solos.</small>
+                    </div>
+
+                    <!-- ── Monto / Fechas ─────────────────────────────────── -->
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="Amount" class="form-control" id="amountInput" step="0.01" />
+                            </div>
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PaymentDate" class="form-label"></label>
+                            <input asp-for="PaymentDate" class="form-control" type="date" id="paymentDateInput" />
+                            <span asp-validation-for="PaymentDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DueDate" class="form-label"></label>
+                            <input asp-for="DueDate" class="form-control" type="date" id="dueDateInput" />
+                        </div>
+                    </div>
+
+                    <!-- ── Estado / Método ────────────────────────────────── -->
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select">
+                                <option value="1">Pagado</option>
+                                <option value="2">Pendiente</option>
+                                <option value="3">Vencido</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Method" class="form-label"></label>
+                            <select asp-for="Method" class="form-select">
+                                <option value="1">Efectivo</option>
+                                <option value="2">Tarjeta</option>
+                                <option value="3">Transferencia</option>
+                                <option value="4">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- ── Descripción / Recibo / Notas ───────────────────── -->
+                    <div class="mb-3 mt-3">
+                        <label asp-for="Description" class="form-label"></label>
+                        <input asp-for="Description" class="form-control" id="descriptionInput"
+                               placeholder="Descripción del pago..." />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ReceiptNumber" class="form-label"></label>
+                        <input asp-for="ReceiptNumber" class="form-control" placeholder="Nº de recibo (opcional)" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Notas adicionales..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-accent" id="submitBtn">
+                            <i class="fas fa-save me-2"></i>Registrar Pago
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+@{await Html.RenderPartialAsync("_ValidationScripts");}
+<script>
+// ── Plan autocomplete ──────────────────────────────────────────────────────
+const planData = @Html.Raw(ViewBag.PlanDataJson ?? "[]");
+
+document.getElementById('planSelect').addEventListener('change', function () {
+    const pid = parseInt(this.value);
+    if (!pid) return;
+    const plan = planData.find(p => p.id === pid);
+    if (!plan) return;
+    document.getElementById('amountInput').value = plan.price;
+    const pd = document.getElementById('paymentDateInput').value;
+    if (pd) {
+        const start = new Date(pd);
+        start.setDate(start.getDate() + plan.durationDays - 1);
+        document.getElementById('dueDateInput').value = start.toISOString().split('T')[0];
+    }
+    if (!document.getElementById('descriptionInput').value)
+        document.getElementById('descriptionInput').value = plan.name ?? '';
+});
+
+// ── Member search autocomplete ─────────────────────────────────────────────
+const searchInput  = document.getElementById('memberSearch');
+const dropdown     = document.getElementById('memberDropdown');
+const memberIdInp  = document.getElementById('memberIdInput');
+const selectedBox  = document.getElementById('memberSelected');
+const searchBox    = document.getElementById('memberSearchBox');
+
+let searchTimer = null;
+
+searchInput.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { hideDropdown(); return; }
+    searchTimer = setTimeout(() => doSearch(q), 220);
+});
+
+searchInput.addEventListener('keydown', function (e) {
+    const items = dropdown.querySelectorAll('.member-item');
+    const active = dropdown.querySelector('.member-item.active');
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = active ? active.nextElementSibling : items[0];
+        if (next) { active?.classList.remove('active'); next.classList.add('active'); next.scrollIntoView({block:'nearest'}); }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = active?.previousElementSibling;
+        if (prev) { active.classList.remove('active'); prev.classList.add('active'); prev.scrollIntoView({block:'nearest'}); }
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const act = dropdown.querySelector('.member-item.active') || dropdown.querySelector('.member-item');
+        if (act) act.click();
+    } else if (e.key === 'Escape') {
+        hideDropdown();
+    }
+});
+
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('#memberSearchBox')) hideDropdown();
+});
+
+document.getElementById('clearMember').addEventListener('click', function () {
+    memberIdInp.value = '';
+    selectedBox.classList.add('d-none');
+    searchBox.classList.remove('d-none');
+    searchInput.value = '';
+    searchInput.focus();
+});
+
+async function doSearch(q) {
+    dropdown.innerHTML = '<div class="p-2 text-muted small text-center"><i class="fas fa-spinner fa-spin me-1"></i>Buscando...</div>';
+    showDropdown();
+    try {
+        const res  = await fetch(`/Members/SearchJson?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        renderResults(data);
+    } catch {
+        dropdown.innerHTML = '<div class="p-2 text-danger small text-center">Error al buscar</div>';
+    }
+}
+
+function renderResults(data) {
+    if (!data.length) {
+        dropdown.innerHTML = '<div class="p-3 text-muted small text-center"><i class="fas fa-user-slash me-1"></i>Sin resultados</div>';
+        return;
+    }
+    dropdown.innerHTML = data.map(m => `
+        <div class="member-item d-flex align-items-center gap-2 px-3 py-2"
+             style="cursor:pointer;transition:background .12s"
+             data-id="${m.id}" data-name="${escHtml(m.text)}"
+             data-number="${escHtml(m.number)}" data-photo="${m.photo ?? ''}">
+            ${m.photo
+                ? `<img src="/${m.photo}" width="32" height="32" class="rounded-circle flex-shrink-0" style="object-fit:cover">`
+                : `<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px">
+                       <i class="fas fa-user text-muted" style="font-size:.7rem"></i>
+                   </div>`}
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-bold text-truncate">${escHtml(m.text)}</div>
+                <div class="text-muted" style="font-size:.78rem">Nº ${escHtml(m.number)}</div>
+            </div>
+        </div>`).join('');
+
+    dropdown.querySelectorAll('.member-item').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            dropdown.querySelectorAll('.member-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        });
+        el.addEventListener('click', () => selectMember(el));
+    });
+    showDropdown();
+}
+
+function selectMember(el) {
+    const id     = el.dataset.id;
+    const name   = el.dataset.name;
+    const number = el.dataset.number;
+    const photo  = el.dataset.photo;
+
+    memberIdInp.value = id;
+
+    document.getElementById('memberName').textContent   = name;
+    document.getElementById('memberNumber').textContent = 'Nº ' + number;
+
+    const photoEl = document.getElementById('memberPhoto');
+    const photoPlaceholder = document.getElementById('memberPhotoPlaceholder');
+    if (photo) {
+        photoEl.src = '/' + photo;
+        photoEl.classList.remove('d-none');
+        photoPlaceholder.classList.add('d-none');
+    } else {
+        photoEl.classList.add('d-none');
+        photoPlaceholder.classList.remove('d-none');
+    }
+
+    selectedBox.classList.remove('d-none');
+    searchBox.classList.add('d-none');
+    hideDropdown();
+}
+
+function showDropdown() { dropdown.classList.remove('d-none'); }
+function hideDropdown()  { dropdown.classList.add('d-none'); }
+function escHtml(str)    { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[s]); }
+
+// Hover styles
+document.addEventListener('mouseover', e => {
+    const t = e.target.closest('.member-item');
+    if (t && !t.classList.contains('active')) {
+        document.querySelectorAll('.member-item').forEach(i => i.classList.remove('active'));
+    }
+});
+
+// Si el form vuelve con error del servidor y MemberId ya tiene valor, mostrar aviso
+const existingId = memberIdInp.value;
+if (existingId) {
+    selectedBox.classList.add('d-none');
+    searchBox.classList.remove('d-none');
+    document.getElementById('memberName').textContent   = '';
+    document.getElementById('memberNumber').textContent = '';
+    searchInput.placeholder = 'Socio seleccionado (ID ' + existingId + ') — buscá de nuevo si cambió';
+}
+</script>
+
+<style>
+.member-item.active,
+.member-item:hover { background: rgba(255,255,255,.07); }
+</style>
+}

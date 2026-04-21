@@ -1,0 +1,186 @@
+@model List<FitManager.Models.Member>
+@{
+    ViewData["Title"] = "Socios";
+    ViewData["BreadcrumbParent"] = "Socios";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-users me-2 text-accent"></i>Gestión de Socios</h1>
+        <p class="text-muted mb-0">@Model.Count socios registrados</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-accent">
+            <i class="fas fa-user-plus me-2"></i>Nuevo Socio
+        </a>
+    </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card fm-card mb-4">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 small text-muted">Estado:</label>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group btn-group-sm" id="statusFilter">
+                    <button type="button" class="btn btn-outline-secondary active" data-status="all">
+                        <i class="fas fa-list me-1"></i>Todos (@Model.Count)
+                    </button>
+                    <button type="button" class="btn btn-outline-success" data-status="1">
+                        <i class="fas fa-check me-1"></i>Activos (@Model.Count(m => m.Status == MemberStatus.Active))
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-status="0">
+                        <i class="fas fa-ban me-1"></i>Inactivos (@Model.Count(m => m.Status == MemberStatus.Inactive))
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Members table -->
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="membersTable" class="table table-hover table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th width="50">#</th>
+                        <th>Socio</th>
+                        <th>Nº Socio</th>
+                        <th>DNI</th>
+                        <th>Teléfono</th>
+                        <th>Inicio</th>
+                        <th>Estado</th>
+                        <th width="160" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in Model)
+                    {
+                        <tr data-status="@((int)member.Status)">
+                            <td class="text-muted small">@member.Id</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (!string.IsNullOrEmpty(member.PhotoPath))
+                                    {
+                                        <img src="@member.PhotoPath" class="member-avatar" alt="@member.FullName" />
+                                    }
+                                    else
+                                    {
+                                        <div class="member-avatar-placeholder">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    }
+                                    <div>
+                                        <div class="fw-semibold">@member.FullName</div>
+                                        @if (!string.IsNullOrEmpty(member.Email))
+                                        {
+                                            <small class="text-muted">@member.Email</small>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-dark border border-secondary">@member.MemberNumber</span></td>
+                            <td>@(member.DNI ?? "—")</td>
+                            <td>@(member.Phone ?? "—")</td>
+                            <td>@member.MembershipStartDate.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (member.Status == MemberStatus.Active)
+                                {
+                                    <span class="badge badge-status bg-success">
+                                        <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Activo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-status bg-secondary">
+                                        <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Inactivo
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a asp-action="Details" asp-route-id="@member.Id"
+                                       class="btn btn-sm btn-icon btn-outline-info" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@member.Id"
+                                       class="btn btn-sm btn-icon btn-outline-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-action="Payments" asp-route-id="@member.Id"
+                                       class="btn btn-sm btn-icon btn-outline-success" title="Pagos">
+                                        <i class="fas fa-credit-card"></i>
+                                    </a>
+                                    <form asp-action="ToggleStatus" asp-route-id="@member.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="btn btn-sm btn-icon @(member.Status == MemberStatus.Active ? "btn-outline-secondary" : "btn-outline-success")"
+                                                title="@(member.Status == MemberStatus.Active ? "Desactivar" : "Activar")">
+                                            <i class="fas @(member.Status == MemberStatus.Active ? "fa-ban" : "fa-check-circle")"></i>
+                                        </button>
+                                    </form>
+                                    @if (User.IsInRole("Administrador"))
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@member.Id" method="post" class="d-inline confirm-delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Eliminar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    var table = $('#membersTable').DataTable({
+        language: dtSpanish,
+        pageLength: 25,
+        order: [[0, 'desc']],
+        columnDefs: [{ orderable: false, targets: [7] }]
+    });
+
+    // Status filter buttons
+    $('#statusFilter button').on('click', function () {
+        $('#statusFilter button').removeClass('active');
+        $(this).addClass('active');
+        var status = $(this).data('status');
+        if (status === 'all') {
+            table.column(6).search('').draw();
+        } else {
+            table.rows().every(function () {
+                var node = $(this.node());
+                if (status === 'all') {
+                    node.show();
+                } else {
+                    node.toggle(node.data('status') == status);
+                }
+            });
+            // Use custom filtering
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                return true;
+            });
+            table.rows().every(function () {
+                var rowStatus = $(this.node()).data('status').toString();
+                $(this.node()).toggle(status === 'all' || rowStatus === status);
+            });
+        }
+    });
+
+    // Confirm delete
+    confirmDeleteForms();
+});
+</script>
+}

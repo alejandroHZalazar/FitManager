@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37111.16 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FitManager", "FitManager.csproj", "{AABFA296-DA32-955D-8FF8-1D122B7C15F5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AABFA296-DA32-955D-8FF8-1D122B7C15F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AABFA296-DA32-955D-8FF8-1D122B7C15F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AABFA296-DA32-955D-8FF8-1D122B7C15F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AABFA296-DA32-955D-8FF8-1D122B7C15F5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {96589FBB-5C5F-4BAC-A38B-1A0E69F8D0CC}
+	EndGlobalSection
+EndGlobal

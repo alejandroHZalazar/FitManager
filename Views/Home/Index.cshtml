@@ -1,0 +1,281 @@
+@{
+    ViewData["Title"] = "Dashboard";
+
+    var totalMembers = (int)ViewBag.TotalMembers;
+    var activeMembers = (int)ViewBag.ActiveMembers;
+    var inactiveMembers = (int)ViewBag.InactiveMembers;
+    var monthlyRevenue = (decimal)ViewBag.MonthlyRevenue;
+    var newMembersThisMonth = (int)ViewBag.NewMembersThisMonth;
+
+    var recentPayments = (List<FitManager.Models.Payment>)ViewBag.RecentPayments;
+    var recentMembers = (List<FitManager.Models.Member>)ViewBag.RecentMembers;
+    var monthlyData = ViewBag.MonthlyData as IEnumerable<dynamic>;
+}
+
+<!-- Page header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-tachometer-alt me-2 text-accent"></i>Dashboard</h1>
+        <p class="text-muted mb-0">Resumen general del gimnasio</p>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">@totalMembers</div>
+                <div class="stat-label">Total Socios</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">@activeMembers</div>
+                <div class="stat-label">Activos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">@newMembersThisMonth</div>
+                <div class="stat-label">Nuevos este Mes</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card stat-accent">
+            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">$@monthlyRevenue.ToString("N0")</div>
+                <div class="stat-label">Ingresos del Mes</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Tables row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card fm-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-accent"></i>Ingresos Mensuales</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card fm-card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2 text-accent"></i>Estado de Socios</h5>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <canvas id="membersChart" style="max-height:220px;"></canvas>
+                <div class="d-flex gap-4 mt-3">
+                    <div class="text-center">
+                        <div class="fw-bold text-success fs-5">@activeMembers</div>
+                        <small class="text-muted">Activos</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold text-danger fs-5">@inactiveMembers</div>
+                        <small class="text-muted">Inactivos</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent activity -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card fm-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-credit-card me-2 text-accent"></i>Últimos Pagos</h5>
+                <a href="/Members" class="btn btn-sm btn-outline-accent">Ver todos</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-dark mb-0">
+                        <thead>
+                            <tr>
+                                <th>Socio</th>
+                                <th>Monto</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!recentPayments.Any())
+                            {
+                                <tr><td colspan="4" class="text-center text-muted py-3">Sin pagos registrados</td></tr>
+                            }
+                            @foreach (var p in recentPayments)
+                            {
+                                <tr>
+                                    <td>@p.Member?.FullName</td>
+                                    <td class="fw-semibold text-success">$@p.Amount.ToString("N2")</td>
+                                    <td>@p.PaymentDate.ToString("dd/MM/yy")</td>
+                                    <td>
+                                        @if (p.Status == FitManager.Models.PaymentStatus.Paid)
+                                        {
+                                            <span class="badge bg-success"><i class="fas fa-check me-1"></i>Pagado</span>
+                                        }
+                                        else if (p.Status == FitManager.Models.PaymentStatus.Pending)
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Pendiente</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger"><i class="fas fa-exclamation me-1"></i>Vencido</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card fm-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-user-plus me-2 text-accent"></i>Últimos Socios</h5>
+                <a href="/Members/Create" class="btn btn-sm btn-accent">
+                    <i class="fas fa-plus me-1"></i>Nuevo
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-dark mb-0">
+                        <thead>
+                            <tr>
+                                <th>Socio</th>
+                                <th>Nº</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!recentMembers.Any())
+                            {
+                                <tr><td colspan="4" class="text-center text-muted py-3">Sin socios registrados</td></tr>
+                            }
+                            @foreach (var m in recentMembers)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrEmpty(m.PhotoPath))
+                                            {
+                                                <img src="@m.PhotoPath" class="member-avatar-sm" alt="@m.FullName" />
+                                            }
+                                            else
+                                            {
+                                                <div class="member-avatar-sm-placeholder"><i class="fas fa-user"></i></div>
+                                            }
+                                            <span>@m.FullName</span>
+                                        </div>
+                                    </td>
+                                    <td><small class="text-muted">@m.MemberNumber</small></td>
+                                    <td>
+                                        @if (m.Status == FitManager.Models.MemberStatus.Active)
+                                        {
+                                            <span class="badge bg-success">Activo</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a href="/Members/Details/@m.Id" class="btn btn-sm btn-icon btn-outline-secondary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// Revenue Chart
+(function () {
+    var data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        (monthlyData ?? Enumerable.Empty<dynamic>())
+        .Select(d => new {
+            label = new DateTime((int)d.Year, (int)d.Month, 1).ToString("MMM yy"),
+            total = (decimal)d.Total
+        }).ToList()
+    ));
+
+    var labels = data.map(d => d.label);
+    var totals = data.map(d => d.total);
+
+    var ctx = document.getElementById('revenueChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Ingresos ($)',
+                    data: totals,
+                    backgroundColor: 'rgba(255, 107, 53, 0.7)',
+                    borderColor: 'rgba(255, 107, 53, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { ticks: { color: '#adb5bd' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#adb5bd' }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    var ctx2 = document.getElementById('membersChart');
+    if (ctx2) {
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Activos', 'Inactivos'],
+                datasets: [{
+                    data: [@activeMembers, @inactiveMembers],
+                    backgroundColor: ['rgba(40,167,69,0.8)', 'rgba(108,117,125,0.5)'],
+                    borderColor: ['#28a745', '#6c757d'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+})();
+</script>
+}

@@ -1,0 +1,178 @@
+@model List<FitManager.Models.ApplicationUser>
+@{
+    ViewData["Title"] = "Usuarios";
+    ViewData["BreadcrumbParent"] = "Administración";
+    var userRoles = ViewBag.UserRoles as Dictionary<string, IList<string>>;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-user-cog me-2 text-accent"></i>Usuarios del Sistema</h1>
+        <p class="text-muted mb-0">@Model.Count usuarios registrados</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="fas fa-user-plus me-2"></i>Nuevo Usuario
+        </button>
+    </div>
+</div>
+
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="usersTable" class="table table-hover table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Roles</th>
+                        <th>Último Acceso</th>
+                        <th>Estado</th>
+                        <th width="140" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        var roles = userRoles?.GetValueOrDefault(user.Id) ?? new List<string>();
+                        <tr>
+                            <td class="fw-semibold">@user.UserName</td>
+                            <td>@user.FullName</td>
+                            <td><small>@user.Email</small></td>
+                            <td>
+                                @foreach (var r in roles)
+                                {
+                                    <span class="badge bg-accent-subtle text-accent me-1">@r</span>
+                                }
+                            </td>
+                            <td>
+                                @(user.LastLoginAt.HasValue
+                                    ? user.LastLoginAt.Value.ToLocalTime().ToString("dd/MM/yy HH:mm")
+                                    : "Nunca")
+                            </td>
+                            <td>
+                                @if (user.IsActive)
+                                {
+                                    <span class="badge bg-success">Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <button class="btn btn-sm btn-icon @(user.IsActive ? "btn-outline-secondary" : "btn-outline-success")"
+                                                title="@(user.IsActive ? "Desactivar" : "Activar")">
+                                            <i class="fas @(user.IsActive ? "fa-ban" : "fa-check-circle")"></i>
+                                        </button>
+                                    </form>
+                                    <button class="btn btn-sm btn-icon btn-outline-warning"
+                                            data-bs-toggle="modal" data-bs-target="#resetPwdModal"
+                                            data-userid="@user.Id" data-username="@user.UserName"
+                                            title="Resetear contraseña">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create user modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2 text-accent"></i>Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label required-label">Nombre</label>
+                            <input name="firstName" class="form-control" required placeholder="Nombre" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label required-label">Apellido</label>
+                            <input name="lastName" class="form-control" required placeholder="Apellido" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label required-label">Usuario</label>
+                            <input name="userName" class="form-control" required placeholder="usuario" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Email</label>
+                            <input name="email" type="email" class="form-control" placeholder="correo@ejemplo.com" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label required-label">Contraseña</label>
+                            <input name="password" type="password" class="form-control" required minlength="4" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Rol</label>
+                            <select name="role" class="form-select" asp-items="ViewBag.Roles"></select>
+                        </div>
+                    </div>
+                    <div asp-validation-summary="All" class="alert alert-danger mt-3"></div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-accent">
+                        <i class="fas fa-save me-2"></i>Crear Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset password modal -->
+<div class="modal fade" id="resetPwdModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="fas fa-key me-2 text-accent"></i>Resetear Contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="ResetPassword" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="resetUserId" />
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Usuario: <strong id="resetUserName"></strong></p>
+                    <label class="form-label required-label">Nueva Contraseña</label>
+                    <input name="newPassword" type="password" class="form-control" required minlength="4" />
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-save me-2"></i>Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    $('#usersTable').DataTable({ language: dtSpanish, order: [[0, 'asc']] });
+
+    document.getElementById('resetPwdModal')?.addEventListener('show.bs.modal', function (e) {
+        var btn = e.relatedTarget;
+        document.getElementById('resetUserId').value = btn.dataset.userid;
+        document.getElementById('resetUserName').textContent = btn.dataset.username;
+    });
+});
+</script>
+}

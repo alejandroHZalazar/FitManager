@@ -1,0 +1,36 @@
+@model FitManager.ViewModels.PlanViewModel
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Nuevo Plan";
+    ViewData["BreadcrumbParent"] = "Planes";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-plus me-2 text-accent"></i>Nuevo Plan</h1>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card fm-card">
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    @await Html.PartialAsync("_PlanFormFields", Model)
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-accent">
+                            <i class="fas fa-save me-2"></i>Guardar Plan
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

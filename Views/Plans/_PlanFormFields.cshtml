@@ -1,0 +1,59 @@
+@model FitManager.ViewModels.PlanViewModel
+@using FitManager.Models
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+<div class="mb-3">
+    <label asp-for="Name" class="form-label"></label>
+    <input asp-for="Name" class="form-control" placeholder="Ej: Plan Mensual Premium" />
+    <span asp-validation-for="Name" class="text-danger small"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="2" placeholder="Descripción opcional..."></textarea>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="PlanType" class="form-label"></label>
+        <select asp-for="PlanType" class="form-select" id="planTypeSelect">
+            <option value="@((int)PlanType.Daily)">Pase Diario</option>
+            <option value="@((int)PlanType.Weekly)">Semanal</option>
+            <option value="@((int)PlanType.Monthly)" selected>Mensual</option>
+            <option value="@((int)PlanType.Custom)">Personalizado</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="DurationDays" class="form-label"></label>
+        <div class="input-group">
+            <input asp-for="DurationDays" class="form-control" id="durationInput" min="1" max="3650" />
+            <span class="input-group-text">días</span>
+        </div>
+        <span asp-validation-for="DurationDays" class="text-danger small"></span>
+    </div>
+</div>
+
+<div class="mb-3 mt-3">
+    <label asp-for="Price" class="form-label"></label>
+    <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input asp-for="Price" class="form-control" placeholder="0.00" step="0.01" />
+    </div>
+    <span asp-validation-for="Price" class="text-danger small"></span>
+</div>
+
+<div class="form-check form-switch mt-3">
+    <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+    <label asp-for="IsActive" class="form-check-label">Plan activo (disponible para asignar)</label>
+</div>
+
+@section Scripts {
+<script>
+    const durations = { 1: 1, 2: 7, 3: 30, 4: null };
+    document.getElementById('planTypeSelect')?.addEventListener('change', function () {
+        const d = durations[this.value];
+        if (d !== null) document.getElementById('durationInput').value = d;
+    });
+</script>
+}

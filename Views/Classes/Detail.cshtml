@@ -1,0 +1,551 @@
+@model FitManager.ViewModels.FitnessClassDetailViewModel
+@using FitManager.Models
+@using FitManager.ViewModels
+@{
+    ViewData["Title"] = Model.Class.Name;
+    ViewData["BreadcrumbParent"] = "Clases";
+
+    string CategoryLabel(string cat) => cat switch {
+        "Spinning"    => "Spinning",
+        "Yoga"        => "Yoga",
+        "Pilates"     => "Pilates",
+        "Zumba"       => "Zumba",
+        "CrossFit"    => "CrossFit",
+        "Functional"  => "Funcional",
+        "Kickboxing"  => "Kickboxing",
+        "Natacion"    => "Natación",
+        "Musculacion" => "Musculación",
+        _             => "Otro"
+    };
+}
+
+<div class="page-header">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <span class="rounded-circle flex-shrink-0"
+              style="width:18px;height:18px;background-color:@Model.Class.Color;display:inline-block;"></span>
+        <h1 class="page-title mb-0">@Model.Class.Name</h1>
+        <span class="badge" style="background-color:@Model.Class.Color;color:#fff;font-size:.8rem;">
+            @CategoryLabel(Model.Class.Category.ToString())
+        </span>
+        @if (Model.Class.IsActive)
+        {
+            <span class="badge badge-status bg-success">
+                <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Activa
+            </span>
+        }
+        else
+        {
+            <span class="badge badge-status bg-secondary">
+                <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Inactiva
+            </span>
+        }
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a asp-action="Edit" asp-controller="Classes" asp-route-id="@Model.Class.Id" class="btn btn-warning">
+            <i class="fas fa-edit me-2"></i>Editar
+        </a>
+        <a asp-action="Index" asp-controller="Classes" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(25,135,84,.15);color:#198754;">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.ActiveCount</div>
+                <div class="stat-label">Inscriptos Activos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(255,193,7,.15);color:#ffc107;">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.WaitlistCount</div>
+                <div class="stat-label">En Lista de Espera</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(79,136,227,.15);color:#4f88e3;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="stat-value">
+                    @(Model.Class.MaxCapacity.HasValue ? Model.Class.MaxCapacity.Value.ToString() : "∞")
+                </div>
+                <div class="stat-label">
+                    @(Model.Class.MaxCapacity.HasValue ? "Capacidad Máxima" : "Ilimitado")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- LEFT column: class info + schedules -->
+    <div class="col-lg-5">
+        <!-- Class info card -->
+        <div class="card fm-card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2 text-accent"></i>Información</h5>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(Model.Class.Description))
+                {
+                    <p class="text-muted mb-3">@Model.Class.Description</p>
+                }
+                <div class="row g-2">
+                    <div class="col-12">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-user-tie me-1"></i>Instructor</span>
+                            <span class="detail-value">@Model.Class.InstructorName</span>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Class.Location))
+                    {
+                        <div class="col-12">
+                            <div class="detail-item">
+                                <span class="detail-label"><i class="fas fa-map-marker-alt me-1"></i>Sede / Sala</span>
+                                <span class="detail-value">@Model.Class.Location</span>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-12">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-calendar-alt me-1"></i>Período</span>
+                            <span class="detail-value">
+                                @Model.Class.StartDate.ToString("dd/MM/yyyy")
+                                @if (Model.Class.EndDate.HasValue)
+                                {
+                                    <text> — @Model.Class.EndDate.Value.ToString("dd/MM/yyyy")</text>
+                                }
+                                else
+                                {
+                                    <span class="text-muted ms-1">(sin fin)</span>
+                                }
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedules card -->
+        <div class="card fm-card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-clock me-2 text-accent"></i>Horarios</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Class.Schedules == null || !Model.Class.Schedules.Any())
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-2x mb-2 d-block opacity-50"></i>
+                        Sin horarios configurados
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var sched in Model.Class.Schedules)
+                        {
+                            var typeLabel = sched.ScheduleType switch {
+                                var t when t.ToString() == "Weekly"    => "Semanal",
+                                var t when t.ToString() == "Biweekly"  => "Quincenal",
+                                var t when t.ToString() == "Monthly"   => "Mensual",
+                                var t when t.ToString() == "OneTime"   => "Fecha Única",
+                                _ => sched.ScheduleType.ToString()
+                            };
+                            <li class="list-group-item bg-transparent border-secondary d-flex align-items-start gap-3 py-2">
+                                <span class="badge bg-dark border border-secondary mt-1 flex-shrink-0" style="font-size:.7rem;">
+                                    @typeLabel
+                                </span>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold text-white" style="font-size:.85rem;">@sched.Description</div>
+                                    <div class="text-muted" style="font-size:.75rem;">
+                                        @sched.EffectiveFrom.ToString("dd/MM/yyyy")
+                                        @if (sched.EffectiveTo.HasValue)
+                                        {
+                                            <text> — @sched.EffectiveTo.Value.ToString("dd/MM/yyyy")</text>
+                                        }
+                                        else
+                                        {
+                                            <text> — sin fin</text>
+                                        }
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <!-- Enroll member card -->
+        <div class="card fm-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-user-plus me-2 text-accent"></i>Inscribir Socio</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Enroll" asp-controller="Classes" asp-route-id="@Model.Class.Id" method="post" id="enrollForm">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Member AJAX search -->
+                    <div class="mb-3">
+                        <label class="form-label">Socio <span class="text-danger">*</span></label>
+                        <input type="hidden" name="MemberId" id="enrollMemberIdInput" />
+
+                        <!-- Selected chip -->
+                        <div id="enrollMemberSelected" class="d-none mb-2">
+                            <div class="d-flex align-items-center gap-2 p-2 rounded border border-secondary bg-dark">
+                                <img id="enrollMemberPhoto" src="" width="36" height="36"
+                                     class="rounded-circle d-none" style="object-fit:cover;" />
+                                <div id="enrollMemberPhotoPlaceholder"
+                                     class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:36px;height:36px;">
+                                    <i class="fas fa-user text-muted" style="font-size:.75rem;"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div id="enrollMemberName" class="fw-bold lh-1"></div>
+                                    <div id="enrollMemberNumber" class="text-muted" style="font-size:.8rem;"></div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="clearEnrollMember" title="Cambiar socio">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search box -->
+                        <div id="enrollMemberSearchBox" class="position-relative">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="enrollMemberSearch" class="form-control"
+                                       placeholder="Buscar por nombre, apellido, Nº socio o DNI..."
+                                       autocomplete="off" />
+                            </div>
+                            <div id="enrollMemberDropdown"
+                                 class="position-absolute w-100 border border-secondary rounded mt-1 d-none"
+                                 style="z-index:1050;max-height:220px;overflow-y:auto;background:#1e1e2e;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label class="form-label">Notas</label>
+                        <textarea name="Notes" class="form-control" rows="2" placeholder="Notas opcionales..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-accent w-100">
+                        <i class="fas fa-user-plus me-2"></i>Inscribir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT column: enrollments table -->
+    <div class="col-lg-7">
+        <div class="card fm-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-users me-2 text-accent"></i>Inscripciones</h5>
+                <span class="badge bg-dark border border-secondary">@Model.Enrollments.Count total</span>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.Enrollments.Any())
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-user-slash fa-2x mb-2 d-block opacity-50"></i>
+                        Sin inscripciones todavía
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table id="enrollmentsTable" class="table table-hover table-dark align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Socio</th>
+                                    <th>Inscripto</th>
+                                    <th>Estado</th>
+                                    <th>Notas</th>
+                                    <th width="100" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var enr in Model.Enrollments)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(enr.Member?.PhotoPath))
+                                                {
+                                                    <img src="/@enr.Member.PhotoPath" width="32" height="32"
+                                                         class="rounded-circle flex-shrink-0" style="object-fit:cover;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0"
+                                                         style="width:32px;height:32px;">
+                                                        <i class="fas fa-user text-muted" style="font-size:.7rem;"></i>
+                                                    </div>
+                                                }
+                                                <div>
+                                                    <div class="fw-semibold">@enr.Member?.FullName</div>
+                                                    <small class="text-muted">Nº @enr.Member?.MemberNumber</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="small">@enr.EnrolledAt.ToString("dd/MM/yyyy")</span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var (badgeClass, statusLabel) = enr.Status switch {
+                                                    EnrollmentStatus.Active     => ("bg-success", "Activo"),
+                                                    EnrollmentStatus.Cancelled  => ("bg-secondary", "Cancelado"),
+                                                    EnrollmentStatus.Waitlisted => ("bg-warning text-dark", "En espera"),
+                                                    _ => ("bg-secondary", enr.Status.ToString())
+                                                };
+                                            }
+                                            <span class="badge badge-status @badgeClass">
+                                                <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>@statusLabel
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted small">@(enr.Notes ?? "—")</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-1">
+                                                @if (enr.Status == EnrollmentStatus.Waitlisted)
+                                                {
+                                                    <!-- Waitlisted -> Active -->
+                                                    <form asp-action="ActivateEnrollment" asp-controller="Classes"
+                                                          asp-route-enrollmentId="@enr.Id"
+                                                          asp-route-classId="@Model.Class.Id"
+                                                          method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-icon btn-outline-success"
+                                                                title="Pasar a activo">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                @if (enr.Status != EnrollmentStatus.Cancelled)
+                                                {
+                                                    <!-- Cancel -->
+                                                    <form asp-action="CancelEnrollment" asp-controller="Classes"
+                                                          asp-route-enrollmentId="@enr.Id"
+                                                          asp-route-classId="@Model.Class.Id"
+                                                          method="post" class="d-inline cancel-enrollment-form">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-icon btn-outline-danger btn-cancel-enrollment"
+                                                                title="Cancelar inscripción"
+                                                                data-name="@enr.Member?.FullName">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    @if (Model.Enrollments.Any())
+    {
+        <text>
+        $('#enrollmentsTable').DataTable({
+            language: dtSpanish,
+            pageLength: 15,
+            order: [[1, 'desc']],
+            columnDefs: [{ orderable: false, targets: [4] }]
+        });
+        </text>
+    }
+
+    // Cancel enrollment confirmation
+    $(document).on('click', '.btn-cancel-enrollment', function () {
+        const btn  = $(this);
+        const name = btn.data('name');
+        const form = btn.closest('.cancel-enrollment-form');
+        Swal.fire({
+            title: '¿Cancelar inscripción?',
+            html: `¿Querés cancelar la inscripción de <strong>${name}</strong>?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-times me-1"></i>Sí, cancelar',
+            cancelButtonText: 'No',
+            background: '#1a1d27',
+            color: '#e0e0e0'
+        }).then(result => {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+
+    // TempData toasts
+    @if (TempData["Success"] != null)
+    {
+        <text>
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success',
+            title: '@Html.Raw(TempData["Success"])', showConfirmButton: false,
+            timer: 3500, background: '#1a1d27', color: '#e0e0e0' });
+        </text>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <text>
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error',
+            title: '@Html.Raw(TempData["Error"])', showConfirmButton: false,
+            timer: 4500, background: '#1a1d27', color: '#e0e0e0' });
+        </text>
+    }
+});
+
+// ── Enroll member AJAX search ───────────────────────────────────────────────
+const enrollSearch      = document.getElementById('enrollMemberSearch');
+const enrollDropdown    = document.getElementById('enrollMemberDropdown');
+const enrollMemberIdInp = document.getElementById('enrollMemberIdInput');
+const enrollSelectedBox = document.getElementById('enrollMemberSelected');
+const enrollSearchBox   = document.getElementById('enrollMemberSearchBox');
+
+let enrollTimer = null;
+
+enrollSearch?.addEventListener('input', function () {
+    clearTimeout(enrollTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { hideEnrollDropdown(); return; }
+    enrollTimer = setTimeout(() => doEnrollSearch(q), 220);
+});
+
+enrollSearch?.addEventListener('keydown', function (e) {
+    const items  = enrollDropdown.querySelectorAll('.enroll-member-item');
+    const active = enrollDropdown.querySelector('.enroll-member-item.active');
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const next = active ? active.nextElementSibling : items[0];
+        if (next) { active?.classList.remove('active'); next.classList.add('active'); next.scrollIntoView({block:'nearest'}); }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = active?.previousElementSibling;
+        if (prev) { active.classList.remove('active'); prev.classList.add('active'); prev.scrollIntoView({block:'nearest'}); }
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const act = enrollDropdown.querySelector('.enroll-member-item.active') || enrollDropdown.querySelector('.enroll-member-item');
+        if (act) act.click();
+    } else if (e.key === 'Escape') {
+        hideEnrollDropdown();
+    }
+});
+
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('#enrollMemberSearchBox')) hideEnrollDropdown();
+});
+
+document.getElementById('clearEnrollMember')?.addEventListener('click', function () {
+    enrollMemberIdInp.value = '';
+    enrollSelectedBox.classList.add('d-none');
+    enrollSearchBox.classList.remove('d-none');
+    enrollSearch.value = '';
+    enrollSearch.focus();
+});
+
+async function doEnrollSearch(q) {
+    enrollDropdown.innerHTML = '<div class="p-2 text-muted small text-center"><i class="fas fa-spinner fa-spin me-1"></i>Buscando...</div>';
+    showEnrollDropdown();
+    try {
+        const res  = await fetch(`/Members/SearchJson?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        renderEnrollResults(data);
+    } catch {
+        enrollDropdown.innerHTML = '<div class="p-2 text-danger small text-center">Error al buscar</div>';
+    }
+}
+
+function renderEnrollResults(data) {
+    if (!data.length) {
+        enrollDropdown.innerHTML = '<div class="p-3 text-muted small text-center"><i class="fas fa-user-slash me-1"></i>Sin resultados</div>';
+        return;
+    }
+    enrollDropdown.innerHTML = data.map(m => `
+        <div class="enroll-member-item d-flex align-items-center gap-2 px-3 py-2"
+             style="cursor:pointer;transition:background .12s"
+             data-id="${m.id}" data-name="${escHtml(m.text)}"
+             data-number="${escHtml(m.number)}" data-photo="${m.photo ?? ''}">
+            ${m.photo
+                ? `<img src="/${m.photo}" width="32" height="32" class="rounded-circle flex-shrink-0" style="object-fit:cover">`
+                : `<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px;height:32px"><i class="fas fa-user text-muted" style="font-size:.7rem"></i></div>`}
+            <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-bold text-truncate">${escHtml(m.text)}</div>
+                <div class="text-muted" style="font-size:.78rem">Nº ${escHtml(m.number)}</div>
+            </div>
+        </div>`).join('');
+
+    enrollDropdown.querySelectorAll('.enroll-member-item').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            enrollDropdown.querySelectorAll('.enroll-member-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        });
+        el.addEventListener('click', () => selectEnrollMember(el));
+    });
+    showEnrollDropdown();
+}
+
+function selectEnrollMember(el) {
+    const id     = el.dataset.id;
+    const name   = el.dataset.name;
+    const number = el.dataset.number;
+    const photo  = el.dataset.photo;
+
+    enrollMemberIdInp.value = id;
+    document.getElementById('enrollMemberName').textContent   = name;
+    document.getElementById('enrollMemberNumber').textContent = 'Nº ' + number;
+
+    const photoEl  = document.getElementById('enrollMemberPhoto');
+    const photoPlh = document.getElementById('enrollMemberPhotoPlaceholder');
+    if (photo) {
+        photoEl.src = '/' + photo;
+        photoEl.classList.remove('d-none');
+        photoPlh.classList.add('d-none');
+    } else {
+        photoEl.classList.add('d-none');
+        photoPlh.classList.remove('d-none');
+    }
+
+    enrollSelectedBox.classList.remove('d-none');
+    enrollSearchBox.classList.add('d-none');
+    hideEnrollDropdown();
+}
+
+function showEnrollDropdown() { enrollDropdown.classList.remove('d-none'); }
+function hideEnrollDropdown()  { enrollDropdown.classList.add('d-none'); }
+function escHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[s]); }
+</script>
+
+<style>
+.enroll-member-item.active,
+.enroll-member-item:hover { background: rgba(255,255,255,.07); }
+</style>
+}

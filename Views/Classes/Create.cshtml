@@ -1,0 +1,396 @@
+@model FitManager.ViewModels.FitnessClassViewModel
+@using FitManager.Models
+@using FitManager.ViewModels
+@{
+    ViewData["Title"] = "Nueva Clase";
+    ViewData["BreadcrumbParent"] = "Clases";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-plus-circle me-2 text-accent"></i>Nueva Clase</h1>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" asp-controller="Classes" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+<form asp-action="Create" asp-controller="Classes" method="post" id="classForm">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+
+    <div class="row g-4">
+        <!-- LEFT: Class info -->
+        <div class="col-lg-5">
+            <div class="card fm-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2 text-accent"></i>Información de la Clase</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Name -->
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                        <input asp-for="Name" class="form-control" placeholder="Ej. Spinning Intensivo" required />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">Descripción</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"
+                                  placeholder="Descripción de la clase..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="mb-3">
+                        <label asp-for="Category" class="form-label">Categoría <span class="text-danger">*</span></label>
+                        <select asp-for="Category" class="form-select">
+                            <option value="">— Seleccioná una categoría —</option>
+                            <option value="Spinning">Spinning</option>
+                            <option value="Yoga">Yoga</option>
+                            <option value="Pilates">Pilates</option>
+                            <option value="Zumba">Zumba</option>
+                            <option value="CrossFit">CrossFit</option>
+                            <option value="Functional">Funcional</option>
+                            <option value="Kickboxing">Kickboxing</option>
+                            <option value="Natacion">Natación</option>
+                            <option value="Musculacion">Musculación</option>
+                            <option value="Other">Otro</option>
+                        </select>
+                        <span asp-validation-for="Category" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Instructor -->
+                    <div class="mb-3">
+                        <label asp-for="InstructorName" class="form-label">Instructor <span class="text-danger">*</span></label>
+                        <input asp-for="InstructorName" class="form-control" placeholder="Nombre del instructor" required />
+                        <span asp-validation-for="InstructorName" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="mb-3">
+                        <label asp-for="Location" class="form-label">Sede / Sala</label>
+                        <input asp-for="Location" class="form-control" placeholder="Ej. Sala 1, Piscina..." />
+                        <span asp-validation-for="Location" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Color -->
+                    <div class="mb-3">
+                        <label asp-for="Color" class="form-label">Color identificador</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input asp-for="Color" type="color" class="form-control form-control-color"
+                                   style="width:48px;height:38px;padding:2px;" value="#4f88e3" />
+                            <input type="text" id="colorHexText" class="form-control" style="max-width:100px;"
+                                   value="@(Model?.Color ?? "#4f88e3")" placeholder="#4f88e3"
+                                   pattern="^#[0-9A-Fa-f]{6}$" />
+                        </div>
+                        <span asp-validation-for="Color" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Dates -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="StartDate" class="form-label">Fecha de inicio</label>
+                            <input asp-for="StartDate" type="date" class="form-control" />
+                            <span asp-validation-for="StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EndDate" class="form-label">Fecha de fin</label>
+                            <input asp-for="EndDate" type="date" class="form-control" id="endDateInput" />
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="noEndDate" />
+                                <label class="form-check-label small text-muted" for="noEndDate">Sin fecha de fin</label>
+                            </div>
+                            <span asp-validation-for="EndDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- MaxCapacity -->
+                    <div class="mb-3 mt-3">
+                        <label asp-for="MaxCapacity" class="form-label">Capacidad máxima</label>
+                        <input asp-for="MaxCapacity" type="number" min="1" class="form-control" id="maxCapacityInput"
+                               placeholder="Ej. 20" />
+                        <div class="form-check mt-1">
+                            <input class="form-check-input" type="checkbox" id="unlimitedCapacity" />
+                            <label class="form-check-label small text-muted" for="unlimitedCapacity">Ilimitado</label>
+                        </div>
+                        <span asp-validation-for="MaxCapacity" class="text-danger small"></span>
+                    </div>
+
+                    <!-- IsActive -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" checked />
+                            <label asp-for="IsActive" class="form-check-label">Clase activa</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Schedules -->
+        <div class="col-lg-7">
+            <div class="card fm-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-clock me-2 text-accent"></i>Horarios</h5>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="addScheduleBtn">
+                        <i class="fas fa-plus me-1"></i>Agregar horario
+                    </button>
+                </div>
+                <div class="card-body" id="schedulesContainer">
+                    @{ int schedCount = Model?.Schedules?.Count ?? 0; if (schedCount == 0) schedCount = 1; }
+                    @for (int i = 0; i < schedCount; i++)
+                    {
+                        <div class="schedule-row border border-secondary rounded p-3 mb-3" data-index="@i">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="fw-semibold text-muted small">Horario #<span class="row-number">@(i+1)</span></span>
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-schedule-btn py-0 px-2">
+                                    <i class="fas fa-times me-1"></i>Eliminar
+                                </button>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Tipo de horario</label>
+                                <select name="Schedules[@i].ScheduleType" class="form-select form-select-sm schedule-type-select">
+                                    <option value="1">Semanal</option>
+                                    <option value="2">Quincenal</option>
+                                    <option value="3">Mensual</option>
+                                    <option value="4">Fecha Única</option>
+                                </select>
+                            </div>
+                            <div class="mb-2 days-section">
+                                <label class="form-label small mb-1">Días de la semana</label>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Monday"    value="true" id="sMon_@i"  /><label class="form-check-label small" for="sMon_@i">Lun</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Tuesday"   value="true" id="sTue_@i"  /><label class="form-check-label small" for="sTue_@i">Mar</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Wednesday" value="true" id="sWed_@i"  /><label class="form-check-label small" for="sWed_@i">Mié</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Thursday"  value="true" id="sThu_@i"  /><label class="form-check-label small" for="sThu_@i">Jue</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Friday"    value="true" id="sFri_@i"  /><label class="form-check-label small" for="sFri_@i">Vie</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Saturday"  value="true" id="sSat_@i"  /><label class="form-check-label small" for="sSat_@i">Sáb</label></div>
+                                    <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[@i].Sunday"    value="true" id="sSun_@i"  /><label class="form-check-label small" for="sSun_@i">Dom</label></div>
+                                </div>
+                            </div>
+                            <div class="mb-2 dom-section d-none">
+                                <label class="form-label small mb-1">Día del mes</label>
+                                <input type="number" name="Schedules[@i].DayOfMonth" class="form-control form-control-sm" min="1" max="31" placeholder="Ej. 15" style="max-width:100px;" />
+                            </div>
+                            <div class="mb-2 specific-date-section d-none">
+                                <label class="form-label small mb-1">Fecha específica</label>
+                                <input type="date" name="Schedules[@i].SpecificDate" class="form-control form-control-sm" style="max-width:180px;" />
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-auto">
+                                    <label class="form-label small mb-1">Hora inicio</label>
+                                    <input type="time" name="Schedules[@i].StartTime" class="form-control form-control-sm" />
+                                </div>
+                                <div class="col-auto">
+                                    <label class="form-label small mb-1">Hora fin</label>
+                                    <input type="time" name="Schedules[@i].EndTime" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col">
+                                    <label class="form-label small mb-1">Vigencia desde</label>
+                                    <input type="date" name="Schedules[@i].EffectiveFrom" class="form-control form-control-sm" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                </div>
+                                <div class="col">
+                                    <label class="form-label small mb-1">Vigencia hasta</label>
+                                    <input type="date" name="Schedules[@i].EffectiveTo" class="form-control form-control-sm" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label small mb-1">Notas</label>
+                                <input type="text" name="Schedules[@i].Notes" class="form-control form-control-sm" placeholder="Notas opcionales del horario..." />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-accent">
+            <i class="fas fa-save me-2"></i>Guardar Clase
+        </button>
+        <a asp-action="Index" asp-controller="Classes" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+</form>
+
+<!-- Schedule row template (hidden, cloned by JS) -->
+<template id="scheduleRowTemplate">
+    <div class="schedule-row border border-secondary rounded p-3 mb-3" data-index="__IDX__">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="fw-semibold text-muted small">Horario #<span class="row-number">__NUM__</span></span>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-schedule-btn py-0 px-2">
+                <i class="fas fa-times me-1"></i>Eliminar
+            </button>
+        </div>
+
+        <!-- Schedule type -->
+        <div class="mb-2">
+            <label class="form-label small mb-1">Tipo de horario</label>
+            <select name="Schedules[__IDX__].ScheduleType" class="form-select form-select-sm schedule-type-select">
+                <option value="0">Semanal</option>
+                <option value="1">Quincenal</option>
+                <option value="2">Mensual</option>
+                <option value="3">Fecha Única</option>
+            </select>
+        </div>
+
+        <!-- Days checkboxes (Semanal / Quincenal) -->
+        <div class="mb-2 days-section">
+            <label class="form-label small mb-1">Días de la semana</label>
+            <div class="d-flex gap-2 flex-wrap">
+                @foreach (var (day, label) in new[] { ("Monday","Lun"),("Tuesday","Mar"),("Wednesday","Mié"),("Thursday","Jue"),("Friday","Vie"),("Saturday","Sáb"),("Sunday","Dom") })
+                {
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox"
+                               name="Schedules[__IDX__].@(day)" value="true"
+                               id="day_@(day)___IDX__" />
+                        <label class="form-check-label small" for="day_@(day)___IDX__">@label</label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Day of month (Mensual) -->
+        <div class="mb-2 dom-section d-none">
+            <label class="form-label small mb-1">Día del mes</label>
+            <input type="number" name="Schedules[__IDX__].DayOfMonth" class="form-control form-control-sm"
+                   min="1" max="31" placeholder="Ej. 15" style="max-width:100px;" />
+        </div>
+
+        <!-- Specific date (Fecha Única) -->
+        <div class="mb-2 specific-date-section d-none">
+            <label class="form-label small mb-1">Fecha específica</label>
+            <input type="date" name="Schedules[__IDX__].SpecificDate" class="form-control form-control-sm"
+                   style="max-width:180px;" />
+        </div>
+
+        <!-- Times -->
+        <div class="row g-2 mb-2">
+            <div class="col-auto">
+                <label class="form-label small mb-1">Hora inicio</label>
+                <input type="time" name="Schedules[__IDX__].StartTime" class="form-control form-control-sm" required />
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Hora fin</label>
+                <input type="time" name="Schedules[__IDX__].EndTime" class="form-control form-control-sm" required />
+            </div>
+        </div>
+
+        <!-- Effective dates -->
+        <div class="row g-2 mb-2">
+            <div class="col">
+                <label class="form-label small mb-1">Vigencia desde</label>
+                <input type="date" name="Schedules[__IDX__].EffectiveFrom" class="form-control form-control-sm" />
+            </div>
+            <div class="col">
+                <label class="form-label small mb-1">Vigencia hasta</label>
+                <input type="date" name="Schedules[__IDX__].EffectiveTo" class="form-control form-control-sm" />
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+            <label class="form-label small mb-1">Notas</label>
+            <input type="text" name="Schedules[__IDX__].Notes" class="form-control form-control-sm"
+                   placeholder="Notas opcionales del horario..." />
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+@{await Html.RenderPartialAsync("_ValidationScripts");}
+<script>
+// Color picker sync
+const colorPicker = document.querySelector('input[type="color"][name="Color"]');
+const colorText   = document.getElementById('colorHexText');
+colorPicker?.addEventListener('input', () => colorText.value = colorPicker.value);
+colorText?.addEventListener('input', () => {
+    if (/^#[0-9A-Fa-f]{6}$/.test(colorText.value)) colorPicker.value = colorText.value;
+});
+
+// No end date checkbox
+document.getElementById('noEndDate')?.addEventListener('change', function () {
+    const inp = document.getElementById('endDateInput');
+    inp.disabled = this.checked;
+    if (this.checked) inp.value = '';
+});
+
+// Unlimited capacity checkbox
+document.getElementById('unlimitedCapacity')?.addEventListener('change', function () {
+    const inp = document.getElementById('maxCapacityInput');
+    inp.disabled = this.checked;
+    if (this.checked) inp.value = '';
+});
+
+// Schedule type visibility
+function updateScheduleSections(row) {
+    const type = row.querySelector('.schedule-type-select')?.value;
+    row.querySelector('.days-section')?.classList.toggle('d-none', type === '2' || type === '3');
+    row.querySelector('.dom-section')?.classList.toggle('d-none', type !== '2');
+    row.querySelector('.specific-date-section')?.classList.toggle('d-none', type !== '3');
+}
+
+document.addEventListener('change', function (e) {
+    if (e.target.classList.contains('schedule-type-select')) {
+        updateScheduleSections(e.target.closest('.schedule-row'));
+    }
+});
+
+// Initialize existing rows
+document.querySelectorAll('.schedule-row').forEach(updateScheduleSections);
+
+// Remove schedule row
+document.addEventListener('click', function (e) {
+    if (e.target.closest('.remove-schedule-btn')) {
+        const row = e.target.closest('.schedule-row');
+        if (document.querySelectorAll('.schedule-row').length > 1) {
+            row.remove();
+            reindexSchedules();
+        } else {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'warning',
+                title: 'Debe haber al menos un horario.', showConfirmButton: false,
+                timer: 2500, background: '#1a1d27', color: '#e0e0e0' });
+        }
+    }
+});
+
+// Add schedule row
+let scheduleCount = document.querySelectorAll('.schedule-row').length;
+document.getElementById('addScheduleBtn')?.addEventListener('click', function () {
+    const template = document.getElementById('scheduleRowTemplate');
+    const idx = scheduleCount++;
+    let html = template.innerHTML
+        .replace(/__IDX__/g, idx)
+        .replace(/__NUM__/g, idx + 1);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const newRow = tmp.firstElementChild;
+    document.getElementById('schedulesContainer').appendChild(newRow);
+    updateScheduleSections(newRow);
+});
+
+function reindexSchedules() {
+    document.querySelectorAll('.schedule-row').forEach((row, i) => {
+        row.setAttribute('data-index', i);
+        row.querySelector('.row-number').textContent = i + 1;
+        row.querySelectorAll('[name]').forEach(el => {
+            el.name = el.name.replace(/Schedules\[\d+\]/, `Schedules[${i}]`);
+        });
+        row.querySelectorAll('[id]').forEach(el => {
+            el.id = el.id.replace(/_\d+$/, '_' + i);
+        });
+        row.querySelectorAll('[for]').forEach(el => {
+            el.htmlFor = el.htmlFor.replace(/_\d+$/, '_' + i);
+        });
+    });
+    scheduleCount = document.querySelectorAll('.schedule-row').length;
+}
+</script>
+}

@@ -1,0 +1,144 @@
+@model MemberViewModel
+@{
+    ViewData["Title"] = Model.FullName;
+    ViewData["BreadcrumbParent"] = "Socios";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-user me-2 text-accent"></i>Ficha del Socio</h1>
+        <p class="text-muted mb-0">
+            <span class="badge bg-dark border border-secondary">@Model.MemberNumber</span>
+        </p>
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+            <i class="fas fa-edit me-2"></i>Editar
+        </a>
+        <a asp-action="Payments" asp-route-id="@Model.Id" class="btn btn-success">
+            <i class="fas fa-credit-card me-2"></i>Pagos
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Profile card -->
+    <div class="col-lg-4">
+        <div class="card fm-card text-center">
+            <div class="card-body py-4">
+                @if (!string.IsNullOrEmpty(Model.PhotoPath))
+                {
+                    <img src="@Model.PhotoPath" class="member-detail-photo mb-3" alt="@Model.FullName" />
+                }
+                else
+                {
+                    <div class="member-detail-photo-placeholder mb-3 mx-auto">
+                        <i class="fas fa-user fa-4x"></i>
+                    </div>
+                }
+
+                <h4 class="fw-bold mb-1">@Model.FullName</h4>
+                <p class="text-muted mb-3">@(Model.Email ?? "Sin email")</p>
+
+                @if (Model.Status == MemberStatus.Active)
+                {
+                    <span class="badge bg-success fs-6 px-3 py-2">
+                        <i class="fas fa-check-circle me-1"></i>Activo
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary fs-6 px-3 py-2">
+                        <i class="fas fa-ban me-1"></i>Inactivo
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Info grid -->
+    <div class="col-lg-8">
+        <div class="card fm-card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-id-card me-2 text-accent"></i>Datos Personales</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-id-badge me-1"></i>DNI / Documento</span>
+                            <span class="detail-value">@(Model.DNI ?? "—")</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-phone me-1"></i>Teléfono</span>
+                            <span class="detail-value">@(Model.Phone ?? "—")</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-birthday-cake me-1"></i>Fecha de Nacimiento</span>
+                            <span class="detail-value">
+                                @if (Model.DateOfBirth.HasValue)
+                                {
+                                    @Model.DateOfBirth.Value.ToString("dd/MM/yyyy")
+                                    <small class="text-muted ms-1">(@(DateTime.Today.Year - Model.DateOfBirth.Value.Year) años)</small>
+                                }
+                                else { <text>—</text> }
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-map-marker-alt me-1"></i>Dirección</span>
+                            <span class="detail-value">@(Model.Address ?? "—")</span>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <div class="col-12">
+                            <div class="detail-item">
+                                <span class="detail-label"><i class="fas fa-sticky-note me-1"></i>Notas</span>
+                                <span class="detail-value">@Model.Notes</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card fm-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-calendar-alt me-2 text-accent"></i>Membresía</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-4">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-calendar-plus me-1"></i>Inicio</span>
+                            <span class="detail-value">@Model.MembershipStartDate.ToString("dd/MM/yyyy")</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-calendar-times me-1"></i>Vencimiento</span>
+                            <span class="detail-value">
+                                @(Model.MembershipEndDate.HasValue ? Model.MembershipEndDate.Value.ToString("dd/MM/yyyy") : "—")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="detail-item">
+                            <span class="detail-label"><i class="fas fa-hashtag me-1"></i>Nº Socio</span>
+                            <span class="detail-value fw-bold text-accent">@Model.MemberNumber</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

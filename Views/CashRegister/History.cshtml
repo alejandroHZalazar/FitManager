@@ -1,0 +1,160 @@
+@model List<FitManager.Models.CashRegister>
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Historial de Caja";
+    ViewData["BreadcrumbParent"] = "Caja Diaria";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-history me-2 text-accent"></i>Historial de Caja</h1>
+        <p class="text-muted mb-0">Últimos @Model.Count cierres</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Caja Hoy
+        </a>
+    </div>
+</div>
+
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="historyTable" class="table table-hover table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Abrió</th>
+                        <th>Apertura</th>
+                        <th>Saldo Calculado</th>
+                        <th>Saldo Real</th>
+                        <th>Diferencia</th>
+                        <th>Estado</th>
+                        <th>Cerró</th>
+                        <th class="text-center">Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        var netBalance = r.OpeningBalance + r.Transactions.Where(t => t.Type == TransactionType.Income || t.Type == TransactionType.Adjustment).Sum(t => t.Amount)
+                                        - r.Transactions.Where(t => t.Type == TransactionType.Expense).Sum(t => t.Amount)
+                                        + r.Payments.Where(p => p.Status == PaymentStatus.Paid).Sum(p => p.Amount);
+                        var diff = r.ClosingBalance.HasValue ? r.ClosingBalance.Value - netBalance : 0;
+
+                        <tr>
+                            <td class="text-nowrap fw-bold">@r.Date.ToString("dd/MM/yyyy")</td>
+                            <td class="text-muted small">@r.OpenedBy</td>
+                            <td>$@r.OpeningBalance.ToString("N0")</td>
+                            <td>$@netBalance.ToString("N0")</td>
+                            <td>
+                                @if (r.ClosingBalance.HasValue)
+                                {
+                                    <strong>$@r.ClosingBalance.Value.ToString("N0")</strong>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (r.ClosingBalance.HasValue && Math.Abs(diff) > 0.01m)
+                                {
+                                    <span class="@(diff > 0 ? "text-success" : "text-danger") fw-bold">
+                                        @(diff > 0 ? "+" : "")$@diff.ToString("N0")
+                                    </span>
+                                }
+                                else if (r.ClosingBalance.HasValue)
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (r.Status == CashRegisterStatus.Open)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-circle me-1"></i>Abierta</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-lock me-1"></i>Cerrada</span>
+                                }
+                            </td>
+                            <td class="text-muted small">
+                                @r.ClosedBy <br />
+                                @r.ClosedAt?.ToString("HH:mm")
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Detail" asp-route-id="@r.Id" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if (r.Status == CashRegisterStatus.Closed && User.IsInRole("Administrador"))
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning"
+                                            title="Reabrir"
+                                            onclick="askReopen(@r.Id, '@r.Date.ToString("dd/MM/yyyy")')">
+                                        <i class="fas fa-lock-open"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal reabrir (reutilizable) -->
+@if (User.IsInRole("Administrador"))
+{
+    <div class="modal fade" id="reopenModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header border-warning">
+                    <h5 class="modal-title text-warning"><i class="fas fa-lock-open me-2"></i>Reabrir Caja</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-action="Reopen" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="RegisterId" id="reopenRegisterId" />
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            Caja del <strong id="reopenDate"></strong>
+                        </p>
+                        <div class="alert alert-warning py-2 small mb-3">
+                            <i class="fas fa-triangle-exclamation me-1"></i>
+                            El saldo de cierre anterior quedará registrado en la auditoría.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Motivo <span class="text-danger">*</span></label>
+                            <textarea name="Reason" class="form-control" rows="3" required maxlength="500"
+                                      placeholder="Ej: Cierre accidental, corrección de cobro…"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-lock-open me-2"></i>Confirmar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    $('#historyTable').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.8/i18n/es-ES.json' },
+        order: [[0, 'desc']],
+        pageLength: 30
+    });
+
+    function askReopen(id, date) {
+        document.getElementById('reopenRegisterId').value = id;
+        document.getElementById('reopenDate').textContent = date;
+        new bootstrap.Modal(document.getElementById('reopenModal')).show();
+    }
+</script>
+}

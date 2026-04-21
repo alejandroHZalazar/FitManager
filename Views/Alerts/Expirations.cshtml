@@ -1,0 +1,70 @@
+@model FitManager.ViewModels.AlertsViewModel
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Vencimientos";
+    ViewData["BreadcrumbParent"] = "Cuotas y Pagos";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-calendar-times me-2 text-warning"></i>Control de Vencimientos</h1>
+        <p class="text-muted mb-0">@DateTime.Today.ToString("dd/MM/yyyy")</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Debts" class="btn btn-outline-danger">
+            <i class="fas fa-exclamation-triangle me-1"></i>Alertas de Deuda
+        </a>
+    </div>
+</div>
+
+<!-- Resumen -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card fm-card border-danger text-center py-3">
+            <i class="fas fa-exclamation-circle fa-2x text-danger mb-2"></i>
+            <div class="h4 text-danger mb-0">@Model.ExpiringToday.Count</div>
+            <div class="text-muted small">Vencen HOY</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fm-card border-warning text-center py-3">
+            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+            <div class="h4 text-warning mb-0">@Model.ExpiringIn5Days.Count</div>
+            <div class="text-muted small">Vencen en ≤5 días</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card fm-card border-secondary text-center py-3">
+            <i class="fas fa-calendar-xmark fa-2x text-muted mb-2"></i>
+            <div class="h4 mb-0">@Model.AlreadyExpired.Count</div>
+            <div class="text-muted small">Ya vencidos (activos)</div>
+        </div>
+    </div>
+</div>
+
+@if (Model.ExpiringToday.Any())
+{
+    <h5 class="text-danger mb-3"><i class="fas fa-exclamation-circle me-2"></i>Vencen Hoy</h5>
+    @await Html.PartialAsync("_ExpirationTable", Model.ExpiringToday)
+}
+
+@if (Model.ExpiringIn5Days.Any())
+{
+    <h5 class="text-warning mb-3 mt-4"><i class="fas fa-clock me-2"></i>Vencen en los Próximos 5 Días</h5>
+    @await Html.PartialAsync("_ExpirationTable", Model.ExpiringIn5Days)
+}
+
+@if (Model.AlreadyExpired.Any())
+{
+    <h5 class="text-muted mb-3 mt-4"><i class="fas fa-calendar-xmark me-2"></i>Ya Vencidos</h5>
+    @await Html.PartialAsync("_ExpirationTable", Model.AlreadyExpired)
+}
+
+@if (!Model.ExpiringToday.Any() && !Model.ExpiringIn5Days.Any() && !Model.AlreadyExpired.Any())
+{
+    <div class="card fm-card text-center py-5">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h5>¡Todo en orden!</h5>
+        <p class="text-muted">No hay vencimientos próximos.</p>
+    </div>
+}

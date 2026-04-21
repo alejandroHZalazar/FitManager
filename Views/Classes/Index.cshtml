@@ -1,0 +1,261 @@
+@model List<FitManager.ViewModels.FitnessClassListViewModel>
+@using FitManager.Models
+@using FitManager.ViewModels
+@{
+    ViewData["Title"] = "Clases y Actividades";
+    ViewData["BreadcrumbParent"] = "Clases";
+
+    int totalClasses = Model.Count;
+    int activeClasses = Model.Count(c => c.IsActive);
+    int totalEnrollments = Model.Sum(c => c.ActiveEnrollments);
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-dumbbell me-2 text-accent"></i>Clases y Actividades</h1>
+        <p class="text-muted mb-0">@totalClasses clases registradas</p>
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a asp-action="Calendar" asp-controller="Classes" class="btn btn-outline-secondary">
+            <i class="fas fa-calendar-week me-2"></i>Agenda Semanal
+        </a>
+        <a asp-action="Create" asp-controller="Classes" class="btn btn-accent">
+            <i class="fas fa-plus me-2"></i>Nueva Clase
+        </a>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(79,136,227,0.15); color: #4f88e3;">
+                <i class="fas fa-chalkboard-teacher"></i>
+            </div>
+            <div>
+                <div class="stat-value">@totalClasses</div>
+                <div class="stat-label">Total de Clases</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(25,135,84,0.15); color: #198754;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value">@activeClasses</div>
+                <div class="stat-label">Clases Activas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(255,107,53,0.15); color: var(--fm-accent);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="stat-value">@totalEnrollments</div>
+                <div class="stat-label">Inscriptos en Total</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Classes table -->
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="classesTable" class="table table-hover table-dark align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Clase</th>
+                        <th>Categoría</th>
+                        <th>Instructor</th>
+                        <th>Sede / Sala</th>
+                        <th>Capacidad</th>
+                        <th class="text-center">Horarios</th>
+                        <th>Estado</th>
+                        <th width="160" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cls in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="rounded-circle flex-shrink-0"
+                                          style="width:14px;height:14px;background-color:@cls.Color;display:inline-block;"></span>
+                                    <span class="fw-semibold">@cls.Name</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary">
+                                    @(cls.Category switch {
+                                        "Spinning"    => "Spinning",
+                                        "Yoga"        => "Yoga",
+                                        "Pilates"     => "Pilates",
+                                        "Zumba"       => "Zumba",
+                                        "CrossFit"    => "CrossFit",
+                                        "Functional"  => "Funcional",
+                                        "Kickboxing"  => "Kickboxing",
+                                        "Natacion"    => "Natación",
+                                        "Musculacion" => "Musculación",
+                                        _             => "Otro"
+                                    })
+                                </span>
+                            </td>
+                            <td>@cls.InstructorName</td>
+                            <td>@(cls.Location ?? "—")</td>
+                            <td>
+                                @if (cls.MaxCapacity.HasValue)
+                                {
+                                    <span>@cls.ActiveEnrollments inscriptos / @cls.MaxCapacity.Value</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Ilimitado</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-dark border border-secondary">@cls.ScheduleCount</span>
+                            </td>
+                            <td>
+                                @if (cls.IsActive)
+                                {
+                                    <span class="badge badge-status bg-success">
+                                        <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Activa
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-status bg-secondary">
+                                        <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Inactiva
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a asp-action="Detail" asp-controller="Classes" asp-route-id="@cls.Id"
+                                       class="btn btn-sm btn-icon btn-outline-info" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-controller="Classes" asp-route-id="@cls.Id"
+                                       class="btn btn-sm btn-icon btn-outline-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+
+                                    <!-- Toggle active -->
+                                    <form asp-action="ToggleActive" asp-controller="Classes" asp-route-id="@cls.Id"
+                                          method="post" class="d-inline toggle-active-form">
+                                        @Html.AntiForgeryToken()
+                                        <button type="button"
+                                                class="btn btn-sm btn-icon @(cls.IsActive ? "btn-outline-secondary" : "btn-outline-success") btn-toggle-active"
+                                                title="@(cls.IsActive ? "Desactivar" : "Activar")"
+                                                data-name="@cls.Name"
+                                                data-active="@cls.IsActive.ToString().ToLower()">
+                                            <i class="fas @(cls.IsActive ? "fa-toggle-off" : "fa-toggle-on")"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete -->
+                                    <form asp-action="Delete" asp-controller="Classes" asp-route-id="@cls.Id"
+                                          method="post" class="d-inline delete-class-form">
+                                        @Html.AntiForgeryToken()
+                                        <button type="button"
+                                                class="btn btn-sm btn-icon btn-outline-danger btn-delete-class"
+                                                title="Eliminar"
+                                                data-name="@cls.Name">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    $('#classesTable').DataTable({
+        language: dtSpanish,
+        pageLength: 25,
+        order: [[0, 'asc']],
+        columnDefs: [{ orderable: false, targets: [7] }]
+    });
+
+    // Delete confirmation
+    $(document).on('click', '.btn-delete-class', function () {
+        const btn  = $(this);
+        const name = btn.data('name');
+        const form = btn.closest('.delete-class-form');
+        Swal.fire({
+            title: '¿Eliminar clase?',
+            html: `¿Estás seguro de que querés eliminar <strong>${name}</strong>?<br><small class="text-muted">Esta acción no se puede deshacer.</small>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash me-1"></i>Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            background: '#1a1d27',
+            color: '#e0e0e0'
+        }).then(result => {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+
+    // Toggle active confirmation
+    $(document).on('click', '.btn-toggle-active', function () {
+        const btn    = $(this);
+        const name   = btn.data('name');
+        const active = btn.data('active') === true || btn.data('active') === 'true';
+        const form   = btn.closest('.toggle-active-form');
+        Swal.fire({
+            title: active ? '¿Desactivar clase?' : '¿Activar clase?',
+            html: `¿Querés ${active ? 'desactivar' : 'activar'} la clase <strong>${name}</strong>?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: active ? '#6c757d' : '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: active ? '<i class="fas fa-toggle-off me-1"></i>Desactivar' : '<i class="fas fa-toggle-on me-1"></i>Activar',
+            cancelButtonText: 'Cancelar',
+            background: '#1a1d27',
+            color: '#e0e0e0'
+        }).then(result => {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+
+    // TempData toasts
+    @if (TempData["Success"] != null)
+    {
+        <text>
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'success',
+            title: '@Html.Raw(TempData["Success"])',
+            showConfirmButton: false, timer: 3500,
+            background: '#1a1d27', color: '#e0e0e0'
+        });
+        </text>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <text>
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'error',
+            title: '@Html.Raw(TempData["Error"])',
+            showConfirmButton: false, timer: 4500,
+            background: '#1a1d27', color: '#e0e0e0'
+        });
+        </text>
+    }
+});
+</script>
+}
