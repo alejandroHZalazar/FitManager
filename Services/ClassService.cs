@@ -15,6 +15,7 @@ public class ClassService : IClassService
     public async Task<List<FitnessClassListViewModel>> GetAllAsync()
     {
         var classes = await _db.FitnessClasses
+            .Include(c => c.Category)
             .Include(c => c.Schedules)
             .Include(c => c.Enrollments)
             .OrderBy(c => c.Name)
@@ -24,7 +25,7 @@ public class ClassService : IClassService
         {
             Id               = c.Id,
             Name             = c.Name,
-            Category         = CategoryLabel(c.Category),
+            Category         = c.Category?.Name ?? "Sin categoría",
             InstructorName   = c.InstructorName,
             Location         = c.Location,
             Color            = c.Color,
@@ -39,12 +40,14 @@ public class ClassService : IClassService
 
     public async Task<FitnessClass?> GetByIdAsync(int id) =>
         await _db.FitnessClasses
+            .Include(c => c.Category)
             .Include(c => c.Schedules.OrderBy(s => s.StartTime))
             .FirstOrDefaultAsync(c => c.Id == id);
 
     public async Task<FitnessClassDetailViewModel?> GetDetailAsync(int id)
     {
         var fc = await _db.FitnessClasses
+            .Include(c => c.Category)
             .Include(c => c.Schedules.OrderBy(s => s.StartTime))
             .Include(c => c.Enrollments.OrderBy(e => e.EnrolledAt))
                 .ThenInclude(e => e.Member)
@@ -65,18 +68,18 @@ public class ClassService : IClassService
     {
         var fc = new FitnessClass
         {
-            Name          = vm.Name,
-            Description   = vm.Description,
-            Category      = vm.Category,
-            InstructorName= vm.InstructorName,
-            Location      = vm.Location,
-            Color         = vm.Color,
-            StartDate     = vm.StartDate,
-            EndDate       = vm.EndDate,
-            MaxCapacity   = vm.MaxCapacity,
-            IsActive      = vm.IsActive,
-            CreatedAt     = DateTime.UtcNow,
-            CreatedBy     = createdBy
+            Name             = vm.Name,
+            Description      = vm.Description,
+            ClassCategoryId  = vm.ClassCategoryId,
+            InstructorName   = vm.InstructorName,
+            Location         = vm.Location,
+            Color            = vm.Color,
+            StartDate        = vm.StartDate,
+            EndDate          = vm.EndDate,
+            MaxCapacity      = vm.MaxCapacity,
+            IsActive         = vm.IsActive,
+            CreatedAt        = DateTime.UtcNow,
+            CreatedBy        = createdBy
         };
 
         foreach (var svm in vm.Schedules.Where(s => IsValidSchedule(s)))
@@ -94,10 +97,10 @@ public class ClassService : IClassService
             .FirstOrDefaultAsync(c => c.Id == vm.Id);
         if (fc == null) return null;
 
-        fc.Name           = vm.Name;
-        fc.Description    = vm.Description;
-        fc.Category       = vm.Category;
-        fc.InstructorName = vm.InstructorName;
+        fc.Name            = vm.Name;
+        fc.Description     = vm.Description;
+        fc.ClassCategoryId = vm.ClassCategoryId;
+        fc.InstructorName  = vm.InstructorName;
         fc.Location       = vm.Location;
         fc.Color          = vm.Color;
         fc.StartDate      = vm.StartDate;
@@ -245,6 +248,7 @@ public class ClassService : IClassService
         var weekEnd = weekStart.AddDays(6);
 
         var classes = await _db.FitnessClasses
+            .Include(c => c.Category)
             .Include(c => c.Schedules.Where(s => s.IsActive))
             .Include(c => c.Enrollments.Where(e => e.Status == EnrollmentStatus.Active))
             .Where(c => c.IsActive
@@ -274,7 +278,8 @@ public class ClassService : IClassService
                     {
                         ClassId        = fc.Id,
                         ClassName      = fc.Name,
-                        Category       = fc.Category,
+                        CategoryName   = fc.Category?.Name ?? string.Empty,
+                        CategoryColor  = fc.Category?.Color ?? "#6c757d",
                         InstructorName = fc.InstructorName,
                         Location       = fc.Location,
                         StartTime      = schedule.StartTime,
@@ -368,17 +373,85 @@ public class ClassService : IClassService
         };
     }
 
-    private static string CategoryLabel(ClassCategory c) => c switch
+    // ── Categorías ────────────────────────────────────────────────────────────
+
+    public async Task<List<ClassCategoryViewModel>> GetAllCategoriesAsync()
     {
-        ClassCategory.Spinning    => "Spinning",
-        ClassCategory.Yoga        => "Yoga",
-        ClassCategory.Pilates     => "Pilates",
-        ClassCategory.Zumba       => "Zumba",
-        ClassCategory.CrossFit    => "CrossFit",
-        ClassCategory.Functional  => "Funcional",
-        ClassCategory.Kickboxing  => "Kickboxing",
-        ClassCategory.Natacion    => "Natación",
-        ClassCategory.Musculacion => "Musculación",
-        _                         => "Otro"
-    };
+        var cats = await _db.ClassCategories
+            .Include(c => c.Classes)
+            .OrderBy(c => c.OrderIndex).ThenBy(c => c.Name)
+            .ToListAsync();
+
+        return cats.Select(c => new ClassCategoryViewModel
+        {
+            Id          = c.Id,
+            Name        = c.Name,
+            Description = c.Description,
+            Color       = c.Color,
+            Icon        = c.Icon,
+            OrderIndex  = c.OrderIndex,
+            IsActive    = c.IsActive,
+            ClassCount  = c.Classes.Count
+        }).ToList();
+    }
+
+    public async Task<ClassCategory?> GetCategoryByIdAsync(int id) =>
+        await _db.ClassCategories.FindAsync(id);
+
+    public async Task<ClassCategory> CreateCategoryAsync(ClassCategoryViewModel vm)
+    {
+        var cat = new ClassCategory
+        {
+            Name        = vm.Name,
+            Description = vm.Description,
+            Color       = vm.Color,
+            Icon        = vm.Icon,
+            OrderIndex  = vm.OrderIndex,
+            IsActive    = vm.IsActive,
+            CreatedAt   = DateTime.UtcNow
+        };
+        _db.ClassCategories.Add(cat);
+        await _db.SaveChangesAsync();
+        return cat;
+    }
+
+    public async Task<ClassCategory?> UpdateCategoryAsync(ClassCategoryViewModel vm)
+    {
+        var cat = await _db.ClassCategories.FindAsync(vm.Id);
+        if (cat == null) return null;
+
+        cat.Name        = vm.Name;
+        cat.Description = vm.Description;
+        cat.Color       = vm.Color;
+        cat.Icon        = vm.Icon;
+        cat.OrderIndex  = vm.OrderIndex;
+        cat.IsActive    = vm.IsActive;
+
+        await _db.SaveChangesAsync();
+        return cat;
+    }
+
+    public async Task<(bool ok, string error)> DeleteCategoryAsync(int id)
+    {
+        var cat = await _db.ClassCategories
+            .Include(c => c.Classes)
+            .FirstOrDefaultAsync(c => c.Id == id);
+        if (cat == null) return (false, "Categoría no encontrada.");
+
+        if (cat.Classes.Any())
+            return (false, $"No se puede eliminar: hay {cat.Classes.Count} clase(s) asociada(s). Reasignelas primero.");
+
+        _db.ClassCategories.Remove(cat);
+        await _db.SaveChangesAsync();
+        return (true, string.Empty);
+    }
+
+    public async Task<bool> ToggleCategoryActiveAsync(int id)
+    {
+        var cat = await _db.ClassCategories.FindAsync(id);
+        if (cat == null) return false;
+        cat.IsActive = !cat.IsActive;
+        await _db.SaveChangesAsync();
+        return true;
+    }
 }

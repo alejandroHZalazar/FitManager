@@ -37,6 +37,12 @@ public class PaymentService : IPaymentService
         return await q.OrderByDescending(p => p.PaymentDate).ThenByDescending(p => p.CreatedAt).ToListAsync();
     }
 
+    public async Task<Payment?> GetByIdAsync(int id) =>
+        await _db.Payments
+            .Include(p => p.Member)
+            .Include(p => p.Plan)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
     public async Task<Payment> CreateAsync(PaymentViewModel vm, string createdBy)
     {
         // Resolve open cash register

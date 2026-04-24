@@ -52,21 +52,16 @@
 
                     <!-- Category -->
                     <div class="mb-3">
-                        <label asp-for="Category" class="form-label">Categoría <span class="text-danger">*</span></label>
-                        <select asp-for="Category" class="form-select">
-                            <option value="">— Seleccioná una categoría —</option>
-                            <option value="Spinning">Spinning</option>
-                            <option value="Yoga">Yoga</option>
-                            <option value="Pilates">Pilates</option>
-                            <option value="Zumba">Zumba</option>
-                            <option value="CrossFit">CrossFit</option>
-                            <option value="Functional">Funcional</option>
-                            <option value="Kickboxing">Kickboxing</option>
-                            <option value="Natacion">Natación</option>
-                            <option value="Musculacion">Musculación</option>
-                            <option value="Other">Otro</option>
+                        <label asp-for="ClassCategoryId" class="form-label">Categoría</label>
+                        <select asp-for="ClassCategoryId" asp-items="Model.Categories" class="form-select">
+                            <option value="">— Sin categoría —</option>
                         </select>
-                        <span asp-validation-for="Category" class="text-danger small"></span>
+                        <span asp-validation-for="ClassCategoryId" class="text-danger small"></span>
+                        <div class="form-text">
+                            <a asp-controller="ClassCategories" asp-action="Index" target="_blank">
+                                <i class="fas fa-tags me-1"></i>Gestionar categorías
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Instructor -->
@@ -409,10 +404,10 @@ document.getElementById('addScheduleBtn')?.addEventListener('click', function ()
         <div class="mb-2">
             <label class="form-label small mb-1">Tipo de horario</label>
             <select name="Schedules[${idx}].ScheduleType" class="form-select form-select-sm schedule-type-select">
-                <option value="0">Semanal</option>
-                <option value="1">Quincenal</option>
-                <option value="2">Mensual</option>
-                <option value="3">Fecha Única</option>
+                <option value="1">Semanal</option>
+                <option value="2">Quincenal</option>
+                <option value="3">Mensual</option>
+                <option value="4">Fecha Única</option>
             </select>
         </div>
         <div class="mb-2 days-section">

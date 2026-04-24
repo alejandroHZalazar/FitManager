@@ -1,0 +1,254 @@
+@model FitManager.ViewModels.RevenueReportViewModel
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Reporte de Ingresos";
+    ViewData["BreadcrumbParent"] = "Reportes";
+}
+
+@await Html.PartialAsync("_ReportCompanyHeader", (FitManager.Models.CompanySettings?)ViewBag.Company)
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-dollar-sign me-2 text-success"></i>Reporte de Ingresos</h1>
+        <p class="text-muted mb-0">@Model.Filter.PresetLabel</p>
+    </div>
+    <a asp-action="Index" asp-controller="Reports" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Reportes
+    </a>
+</div>
+
+@await Html.PartialAsync("_FilterBar", Model.Filter)
+
+@* ── KPIs ─────────────────────────────────────────────────────────────────── *@
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div>
+                <div class="stat-value">$@Model.TotalRevenue.ToString("N0")</div>
+                <div class="stat-label">Total recaudado</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+            <div>
+                <div class="stat-value">@Model.PaymentCount</div>
+                <div class="stat-label">Pagos registrados</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-accent">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div>
+                <div class="stat-value">$@Model.AverageTicket.ToString("N0")</div>
+                <div class="stat-label">Ticket promedio</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div>
+                <div class="stat-value">$@Model.CashRevenue.ToString("N0")</div>
+                <div class="stat-label">Efectivo</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    @* ── Gráfico por mes ──────────────────────────────────────────────────── *@
+    <div class="col-lg-8">
+        <div class="fm-card">
+            <div class="card-header"><h6 class="card-title mb-0"><i class="fas fa-chart-bar me-2 text-accent"></i>Ingresos por mes</h6></div>
+            <div class="card-body">
+                @if (Model.ByMonth.Any())
+                {
+                    <canvas id="revenueChart" height="90"></canvas>
+                }
+                else
+                {
+                    <p class="text-muted text-center py-4">Sin datos para el período seleccionado.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* ── Por método de pago ───────────────────────────────────────────────── *@
+    <div class="col-lg-4">
+        <div class="fm-card h-100">
+            <div class="card-header"><h6 class="card-title mb-0"><i class="fas fa-credit-card me-2 text-accent"></i>Por método de pago</h6></div>
+            <div class="card-body">
+                @if (Model.ByMethod.Any())
+                {
+                    <canvas id="methodChart" height="170"></canvas>
+                    <div class="mt-3">
+                        @foreach (var m in Model.ByMethod)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2 small">
+                                <span><span class="badge me-1" style="background:@m.Color">@m.Label</span></span>
+                                <span class="fw-semibold">$@m.Total.ToString("N0") <span class="text-muted">(@m.Percent%)</span></span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted text-center py-4">Sin datos.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Por plan ─────────────────────────────────────────────────────────────── *@
+<div class="fm-card mb-4">
+    <div class="card-header"><h6 class="card-title mb-0"><i class="fas fa-tags me-2 text-accent"></i>Ingresos por plan</h6></div>
+    <div class="card-body p-0">
+        <table class="table table-dark mb-0">
+            <thead><tr><th>Plan</th><th>Pagos</th><th>Total</th><th style="min-width:180px">Participación</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model.ByPlan)
+                {
+                    <tr>
+                        <td>@p.PlanName</td>
+                        <td>@p.Count</td>
+                        <td class="fw-semibold text-success">$@p.Total.ToString("N0")</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="flex-grow-1 bg-secondary rounded" style="height:6px">
+                                    <div class="rounded bg-success" style="height:6px;width:@p.Percent%"></div>
+                                </div>
+                                <small class="text-muted" style="min-width:36px">@p.Percent%</small>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ── Detalle de pagos ─────────────────────────────────────────────────────── *@
+<div class="fm-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="card-title mb-0"><i class="fas fa-list me-2 text-accent"></i>Detalle de pagos</h6>
+        <span class="badge bg-secondary">@Model.Payments.Count registros</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-dark table-hover mb-0" id="paymentsTable">
+            <thead>
+                <tr>
+                    <th>Socio</th>
+                    <th>Fecha</th>
+                    <th>Plan</th>
+                    <th>Método</th>
+                    <th>Descripción</th>
+                    <th class="text-end">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Payments)
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="Members" asp-action="Detail" asp-route-id="@p.MemberId" class="text-white">
+                                @p.Member?.FullName
+                            </a>
+                        </td>
+                        <td>@p.PaymentDate.ToString("dd/MM/yyyy")</td>
+                        <td><small class="text-muted">@(p.Plan?.Name ?? "–")</small></td>
+                        <td>
+                            @{
+                                var (mLabel, mClass) = p.Method switch {
+                                    PaymentMethod.Cash     => ("Efectivo",       "bg-success"),
+                                    PaymentMethod.Card     => ("Tarjeta",        "bg-primary"),
+                                    PaymentMethod.Transfer => ("Transferencia",  "bg-warning text-dark"),
+                                    _                      => ("Otro",           "bg-secondary")
+                                };
+                            }
+                            <span class="badge @mClass">@mLabel</span>
+                        </td>
+                        <td><small class="text-muted">@p.Description</small></td>
+                        <td class="text-end fw-semibold text-success">$@p.Amount.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr class="table-active fw-bold">
+                    <td colspan="5">Total</td>
+                    <td class="text-end text-success">$@Model.TotalRevenue.ToString("N0")</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+
+@if (Model.ByMonth.Any())
+{
+    <text>
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'bar',
+        data: {
+            labels: [@Html.Raw(string.Join(",", Model.ByMonth.Select(m => $"'{m.Label}'")))],
+            datasets: [{
+                label: 'Ingresos',
+                data: [@string.Join(",", Model.ByMonth.Select(m => m.Total))],
+                backgroundColor: 'rgba(255,107,53,0.7)',
+                borderColor: '#ff6b35',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { ticks: { callback: v => '$' + v.toLocaleString() } }
+            }
+        }
+    });
+    </text>
+}
+
+@if (Model.ByMethod.Any())
+{
+    <text>
+    new Chart(document.getElementById('methodChart'), {
+        type: 'doughnut',
+        data: {
+            labels: [@Html.Raw(string.Join(",", Model.ByMethod.Select(m => $"'{m.Label}'")))],
+            datasets: [{
+                data: [@string.Join(",", Model.ByMethod.Select(m => m.Total))],
+                backgroundColor: [@Html.Raw(string.Join(",", Model.ByMethod.Select(m => $"'{m.Color}'")))],
+                borderWidth: 2,
+                borderColor: '#1a1d27'
+            }]
+        },
+        options: {
+            responsive: true,
+            cutout: '65%',
+            plugins: { legend: { display: false } }
+        }
+    });
+    </text>
+}
+
+// DataTable
+if (typeof $.fn.DataTable !== 'undefined') {
+    $('#paymentsTable').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json' },
+        order: [[1,'desc']], pageLength: 25
+    });
+}
+</script>
+}

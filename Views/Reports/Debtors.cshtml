@@ -1,0 +1,176 @@
+@model FitManager.ViewModels.DebtorsReportViewModel
+@{
+    ViewData["Title"] = "Reporte de Deudores";
+    ViewData["BreadcrumbParent"] = "Reportes";
+}
+
+@await Html.PartialAsync("_ReportCompanyHeader", (FitManager.Models.CompanySettings?)ViewBag.Company)
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-exclamation-circle me-2 text-danger"></i>Deudores</h1>
+        <p class="text-muted mb-0">Pagos pendientes con vencimiento en: @Model.Filter.PresetLabel</p>
+    </div>
+    <a asp-action="Index" asp-controller="Reports" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Reportes
+    </a>
+</div>
+
+@await Html.PartialAsync("_FilterBar", Model.Filter)
+
+@* ── KPIs ─────────────────────────────────────────────────────────────────── *@
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="border-color:rgba(220,53,69,0.4)">
+            <div class="stat-icon" style="background:rgba(220,53,69,0.15);color:#dc3545">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.TotalDebtors</div>
+                <div class="stat-label">Deudores</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="border-color:rgba(220,53,69,0.4)">
+            <div class="stat-icon" style="background:rgba(220,53,69,0.15);color:#dc3545">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div>
+                <div class="stat-value">$@Model.TotalDebt.ToString("N0")</div>
+                <div class="stat-label">Deuda total</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+            <div>
+                <div class="stat-value">$@Model.AvgDebt.ToString("N0")</div>
+                <div class="stat-label">Deuda promedio</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card" style="border-color:rgba(220,53,69,0.6)">
+            <div class="stat-icon" style="background:rgba(220,53,69,0.2);color:#dc3545">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div>
+                <div class="stat-value">@Model.CriticalCount</div>
+                <div class="stat-label">Críticos (+30 días)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Debtors.Any())
+{
+    <div class="fm-card p-5 text-center">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h5 class="text-success">Sin deudores en el período</h5>
+        <p class="text-muted">No hay pagos pendientes con vencimiento en el rango seleccionado.</p>
+    </div>
+}
+else
+{
+    <div class="fm-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0"><i class="fas fa-list me-2 text-accent"></i>Listado de deudores</h6>
+            <div class="d-flex gap-2">
+                <span class="badge bg-danger">@Model.Debtors.Count(d => d.DaysOverdue > 30) críticos</span>
+                <span class="badge bg-warning text-dark">@Model.Debtors.Count(d => d.DaysOverdue > 15 && d.DaysOverdue <= 30) moderados</span>
+                <span class="badge bg-secondary">@Model.Debtors.Count(d => d.DaysOverdue <= 15) leves</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0" id="debtorsTable">
+                <thead>
+                    <tr>
+                        <th>Socio</th>
+                        <th>Nº</th>
+                        <th>Contacto</th>
+                        <th>Deuda total</th>
+                        <th>Cuotas</th>
+                        <th>Más antiguo</th>
+                        <th>Días mora</th>
+                        <th>Gravedad</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in Model.Debtors)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (!string.IsNullOrEmpty(d.PhotoPath))
+                                    {
+                                        <img src="@d.PhotoPath" class="member-avatar" />
+                                    }
+                                    else
+                                    {
+                                        <div class="member-avatar-placeholder"><i class="fas fa-user"></i></div>
+                                    }
+                                    <span class="fw-semibold">@d.FullName</span>
+                                </div>
+                            </td>
+                            <td><small class="text-muted">@d.MemberNumber</small></td>
+                            <td>
+                                <div class="small">
+                                    @if (!string.IsNullOrEmpty(d.Phone))
+                                    {
+                                        <div><i class="fas fa-phone me-1 text-muted"></i>@d.Phone</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(d.Email))
+                                    {
+                                        <div><i class="fas fa-envelope me-1 text-muted"></i>@d.Email</div>
+                                    }
+                                </div>
+                            </td>
+                            <td class="fw-bold text-danger">$@d.TotalDebt.ToString("N0")</td>
+                            <td><span class="badge bg-secondary">@d.PaymentCount</span></td>
+                            <td><small>@d.OldestDueDate.ToString("dd/MM/yyyy")</small></td>
+                            <td>
+                                @if (d.DaysOverdue > 0)
+                                {
+                                    <span class="fw-bold text-@d.Severity">@d.DaysOverdue días</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning small">Por vencer</span>
+                                }
+                            </td>
+                            <td><span class="badge-status badge bg-@d.Severity">@d.SeverityLabel</span></td>
+                            <td>
+                                <a asp-controller="Members" asp-action="Detail" asp-route-id="@d.MemberId"
+                                   class="btn btn-icon btn-sm btn-outline-secondary" title="Ver socio">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-active fw-bold">
+                        <td colspan="3">Total</td>
+                        <td class="text-danger">$@Model.TotalDebt.ToString("N0")</td>
+                        <td colspan="5"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+if (typeof $.fn.DataTable !== 'undefined' && document.getElementById('debtorsTable')) {
+    $('#debtorsTable').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json' },
+        order: [[6, 'desc']],
+        pageLength: 25
+    });
+}
+</script>
+}

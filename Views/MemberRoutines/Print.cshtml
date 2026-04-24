@@ -1,0 +1,217 @@
+@model FitManager.ViewModels.RoutinePrintViewModel
+@using FitManager.Models
+@{
+    Layout = null;
+    var r  = Model.Routine;
+    var m  = Model.Member;
+    var a  = Model.Assignment;
+    var co = Model.Company;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Rutina — @m.FullName</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; padding: 20px; }
+
+        /* ── Encabezado empresa ─────────────────────────────────────────── */
+        .company-header { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #1a1a1a; padding-bottom: 12px; margin-bottom: 14px; }
+        .company-logo { width: 60px; height: 60px; object-fit: contain; }
+        .company-logo-icon { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 36px; color: #444; }
+        .company-name { font-size: 20px; font-weight: bold; line-height: 1.2; }
+        .company-slogan { font-size: 11px; color: #666; }
+        .company-contact { font-size: 10px; color: #555; margin-top: 4px; }
+
+        /* ── Datos del socio ──────────────────────────────────────────────── */
+        .member-section { display: flex; gap: 14px; background: #f4f4f4; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
+        .member-section .col { flex: 1; }
+        .member-section .label { font-size: 9px; text-transform: uppercase; color: #888; letter-spacing: .5px; }
+        .member-section .value { font-size: 12px; font-weight: bold; }
+
+        /* ── Encabezado rutina ──────────────────────────────────────────── */
+        .routine-header { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
+        .routine-title { font-size: 16px; font-weight: bold; }
+        .routine-meta { font-size: 10px; color: #666; margin-top: 4px; }
+        .routine-meta span { margin-right: 16px; }
+
+        /* ── Días ────────────────────────────────────────────────────────── */
+        .day-block { margin-bottom: 12px; page-break-inside: avoid; }
+        .day-header { background: #2c2c2c; color: #fff; padding: 5px 10px; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 11px; display: flex; align-items: center; gap: 8px; }
+        .day-badge { background: #e67e22; border-radius: 3px; padding: 1px 6px; font-size: 10px; }
+        .rest-day { background: #f9f9f9; border: 1px solid #ddd; border-top: none; padding: 8px 10px; text-align: center; color: #888; border-radius: 0 0 4px 4px; font-style: italic; }
+
+        /* ── Tabla ejercicios ───────────────────────────────────────────── */
+        table.exercises { width: 100%; border-collapse: collapse; border: 1px solid #ddd; border-top: none; border-radius: 0 0 4px 4px; }
+        table.exercises thead tr { background: #f0f0f0; }
+        table.exercises th { padding: 4px 8px; font-size: 10px; text-align: left; border-bottom: 1px solid #ccc; border-right: 1px solid #e0e0e0; }
+        table.exercises td { padding: 4px 8px; border-bottom: 1px solid #eee; border-right: 1px solid #e8e8e8; font-size: 10px; }
+        table.exercises tr:last-child td { border-bottom: none; }
+        table.exercises .center { text-align: center; }
+        table.exercises .muted { color: #888; }
+
+        /* ── Footer ──────────────────────────────────────────────────────── */
+        .print-footer { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 8px; font-size: 9px; color: #aaa; display: flex; justify-content: space-between; }
+
+        /* ── Print media ─────────────────────────────────────────────────── */
+        @@media print {
+            body { padding: 10px; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Botón imprimir (solo pantalla) ────────────────────────────── -->
+<div class="no-print" style="text-align:right; margin-bottom:14px;">
+    <button onclick="window.print()" style="background:#333; color:#fff; border:none; padding:7px 16px; border-radius:4px; cursor:pointer; font-size:12px;">
+        🖨 Imprimir
+    </button>
+    <button onclick="window.close()" style="background:#888; color:#fff; border:none; padding:7px 16px; border-radius:4px; cursor:pointer; font-size:12px; margin-left:6px;">
+        ✕ Cerrar
+    </button>
+</div>
+
+<!-- ── Encabezado Empresa ──────────────────────────────────────────── -->
+<div class="company-header">
+    @if (!string.IsNullOrEmpty(co?.LogoPath))
+    {
+        <img src="/@co.LogoPath" class="company-logo" alt="Logo" />
+    }
+    else
+    {
+        <div class="company-logo-icon">🏋</div>
+    }
+    <div>
+        <div class="company-name">@(co?.Name ?? "FitManager")</div>
+        @if (!string.IsNullOrWhiteSpace(co?.Slogan))
+        {
+            <div class="company-slogan">@co.Slogan</div>
+        }
+        <div class="company-contact">
+            @{
+                var addr = string.Join(", ", new[] { co?.Address, co?.City, co?.Province }
+                    .Where(s => !string.IsNullOrWhiteSpace(s)));
+            }
+            @if (!string.IsNullOrEmpty(addr)) { <span>📍 @addr</span> }
+            @if (!string.IsNullOrWhiteSpace(co?.Phone)) { <span style="margin-left:12px;">📞 @co.Phone</span> }
+            @if (!string.IsNullOrWhiteSpace(co?.Email)) { <span style="margin-left:12px;">✉ @co.Email</span> }
+        </div>
+    </div>
+</div>
+
+<!-- ── Datos del Socio ──────────────────────────────────────────────── -->
+<div class="member-section">
+    <div class="col">
+        <div class="label">Socio</div>
+        <div class="value">@m.FullName</div>
+    </div>
+    <div class="col">
+        <div class="label">N° Socio</div>
+        <div class="value">@m.MemberNumber</div>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(m.Phone))
+    {
+        <div class="col">
+            <div class="label">Teléfono</div>
+            <div class="value">@m.Phone</div>
+        </div>
+    }
+    <div class="col">
+        <div class="label">Inicio</div>
+        <div class="value">@a.StartDate.ToString("dd/MM/yyyy")</div>
+    </div>
+    @if (a.EndDate.HasValue)
+    {
+        <div class="col">
+            <div class="label">Fin</div>
+            <div class="value">@a.EndDate.Value.ToString("dd/MM/yyyy")</div>
+        </div>
+    }
+</div>
+
+<!-- ── Encabezado Rutina ─────────────────────────────────────────────── -->
+<div class="routine-header">
+    <div class="routine-title">@r.Name</div>
+    <div class="routine-meta">
+        <span><strong>Objetivo:</strong> @Model.GoalLabel</span>
+        <span><strong>Duración:</strong> @r.DurationWeeks semanas</span>
+        <span><strong>Frecuencia:</strong> @r.FrequencyPerWeek días/semana</span>
+        @if (!string.IsNullOrWhiteSpace(r.Description))
+        {
+            <span><strong>Notas:</strong> @r.Description</span>
+        }
+    </div>
+    @if (!string.IsNullOrWhiteSpace(a.Notes))
+    {
+        <div class="routine-meta" style="margin-top:4px;"><strong>Observaciones:</strong> @a.Notes</div>
+    }
+</div>
+
+<!-- ── Días y Ejercicios ─────────────────────────────────────────────── -->
+@foreach (var day in r.Days.OrderBy(d => d.OrderIndex))
+{
+    <div class="day-block">
+        <div class="day-header">
+            <span class="day-badge">Día @day.DayNumber</span>
+            @if (!string.IsNullOrWhiteSpace(day.Name))
+            {
+                <span>@day.Name</span>
+            }
+            @if (day.IsRestDay)
+            {
+                <span style="margin-left:auto; font-size:10px; color:#ccc;">DESCANSO</span>
+            }
+        </div>
+
+        @if (day.IsRestDay)
+        {
+            <div class="rest-day">Día de descanso — recuperación activa</div>
+        }
+        else if (!day.Exercises.Any())
+        {
+            <div class="rest-day">Sin ejercicios asignados</div>
+        }
+        else
+        {
+            <table class="exercises">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Ejercicio</th>
+                        <th class="center" style="width:50px;">Series</th>
+                        <th class="center" style="width:60px;">Reps</th>
+                        <th class="center" style="width:65px;">Peso (kg)</th>
+                        <th class="center" style="width:65px;">Desc. (s)</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int exNum = 1; }
+                    @foreach (var ex in day.Exercises.OrderBy(e => e.OrderIndex))
+                    {
+                        <tr>
+                            <td class="center muted">@(exNum++)</td>
+                            <td><strong>@ex.Exercise?.Name</strong></td>
+                            <td class="center">@ex.Sets</td>
+                            <td class="center">@ex.Reps</td>
+                            <td class="center">@(ex.Weight.HasValue ? ex.Weight.Value.ToString("0.##") : "—")</td>
+                            <td class="center">@(ex.RestSeconds.HasValue ? ex.RestSeconds.Value.ToString() : "—")</td>
+                            <td class="muted">@ex.Notes</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+<!-- ── Footer ──────────────────────────────────────────────────────── -->
+<div class="print-footer">
+    <span>Impreso el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+    <span>@(co?.Name ?? "FitManager") — Sistema de Gestión</span>
+</div>
+
+</body>
+</html>

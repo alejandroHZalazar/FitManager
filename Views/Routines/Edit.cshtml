@@ -1,0 +1,22 @@
+@model FitManager.ViewModels.RoutineEditViewModel
+@{
+    ViewData["Title"] = $"Editar: {Model.Name}";
+    ViewData["BreadcrumbParent"] = "Rutinas";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-edit me-2 text-accent"></i>Editar: <span class="text-accent">@Model.Name</span></h1>
+    </div>
+    <div class="page-actions d-flex gap-2">
+        <a asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver al Detalle
+        </a>
+    </div>
+</div>
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    @await Html.PartialAsync("_RoutineForm", Model)
+</form>

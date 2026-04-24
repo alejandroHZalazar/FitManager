@@ -50,6 +50,29 @@ public class PaymentViewModel
     public string? ReceiptNumber { get; set; }
 }
 
+public class PaymentReceiptViewModel
+{
+    public FitManager.Models.CompanySettings Company { get; set; } = null!;
+    public FitManager.Models.Member          Member  { get; set; } = null!;
+    public FitManager.Models.Payment         Payment { get; set; } = null!;
+
+    public string MethodLabel => Payment.Method switch
+    {
+        FitManager.Models.PaymentMethod.Cash     => "Efectivo",
+        FitManager.Models.PaymentMethod.Card     => "Tarjeta",
+        FitManager.Models.PaymentMethod.Transfer => "Transferencia",
+        _                                        => "Otro"
+    };
+
+    public string StatusLabel => Payment.Status switch
+    {
+        FitManager.Models.PaymentStatus.Paid      => "Pagado",
+        FitManager.Models.PaymentStatus.Pending   => "Pendiente",
+        FitManager.Models.PaymentStatus.Overdue   => "Vencido",
+        _                                          => "Cancelado"
+    };
+}
+
 public class MemberPaymentsViewModel
 {
     public MemberViewModel Member { get; set; } = null!;

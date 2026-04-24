@@ -7,6 +7,7 @@ public interface IPaymentService
 {
     Task<List<Payment>> GetByMemberAsync(int memberId);
     Task<List<Payment>> GetAllAsync(PaymentFilterViewModel? filter = null);
+    Task<Payment?> GetByIdAsync(int id);
     Task<Payment> CreateAsync(PaymentViewModel vm, string createdBy);
     Task<bool> DeleteAsync(int id);
     Task<(decimal paid, decimal pending)> GetTotalsAsync(int memberId);

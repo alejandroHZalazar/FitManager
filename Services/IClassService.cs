@@ -25,4 +25,12 @@ public interface IClassService
 
     // ── Calendario ───────────────────────────────────────────────────────────
     Task<ClassCalendarViewModel> GetCalendarWeekAsync(DateTime weekStart);
+
+    // ── Categorías ────────────────────────────────────────────────────────────
+    Task<List<ClassCategoryViewModel>> GetAllCategoriesAsync();
+    Task<ClassCategory?> GetCategoryByIdAsync(int id);
+    Task<ClassCategory> CreateCategoryAsync(ClassCategoryViewModel vm);
+    Task<ClassCategory?> UpdateCategoryAsync(ClassCategoryViewModel vm);
+    Task<(bool ok, string error)> DeleteCategoryAsync(int id);
+    Task<bool> ToggleCategoryActiveAsync(int id);
 }

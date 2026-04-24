@@ -39,7 +39,11 @@
       "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost:7001/Account/Login)",
       "Bash(powershell -Command \"Get-Process dotnet | Stop-Process -Force\")",
       "Bash(findstr /n \"_ScheduleRow\" \"C:\\\\Desarrollos\\\\FitManager\\\\Views\\\\Classes\\\\Create.cshtml\")",
-      "Bash(powershell -Command \"Select-String -Path 'C:\\\\Desarrollos\\\\FitManager\\\\Views\\\\Classes\\\\Create.cshtml' -Pattern 'ScheduleRow|Partial|RenderPartial'\")"
+      "Bash(powershell -Command \"Select-String -Path 'C:\\\\Desarrollos\\\\FitManager\\\\Views\\\\Classes\\\\Create.cshtml' -Pattern 'ScheduleRow|Partial|RenderPartial'\")",
+      "Bash(Start-Process -FilePath \"dotnet\" -ArgumentList \"run --no-build --project C:\\\\Desarrollos\\\\FitManager\" -WindowStyle Hidden)",
+      "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost:7001/Classes/Create)",
+      "Bash(curl -sk -o /dev/null -w \"%{http_code}\" https://localhost:7001/)",
+      "Bash(del /Q Migrations\\\\20260423020000_FixRoutinesAutoIncrement.cs Migrations\\\\20260423020000_FixRoutinesAutoIncrement.Designer.cs)"
     ]
   }
 }

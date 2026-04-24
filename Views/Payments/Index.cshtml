@@ -19,6 +19,18 @@
     </div>
 </div>
 
+@if (TempData["NewPaymentId"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-check-circle me-2"></i>Pago registrado exitosamente.
+        <a href="/Payments/Receipt/@TempData["NewPaymentId"]" target="_blank"
+           class="btn btn-sm btn-outline-light ms-3">
+            <i class="fas fa-print me-1"></i>Imprimir Comprobante
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <!-- Filters -->
 <div class="card fm-card mb-4">
     <div class="card-header">
@@ -130,6 +142,7 @@
                         <th>Estado</th>
                         <th>Vencimiento</th>
                         <th class="text-center">Acciones</th>
+                        <th width="40"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -178,6 +191,12 @@
                                         onclick="confirmDelete(@p.Id)" title="Eliminar">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                            </td>
+                            <td class="text-center">
+                                <a href="/Payments/Receipt/@p.Id" target="_blank"
+                                   class="btn btn-sm btn-icon btn-outline-secondary" title="Imprimir comprobante">
+                                    <i class="fas fa-print"></i>
+                                </a>
                             </td>
                         </tr>
                     }

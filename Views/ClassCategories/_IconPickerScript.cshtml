@@ -1,0 +1,172 @@
+@model string
+@* Model = currently selected icon class, e.g. "fa-dumbbell" *@
+<script>
+(function () {
+
+    // ── Lista de íconos disponibles ────────────────────────────────────────────
+    const ICONS = [
+        // Fitness y deportes
+        { icon: 'fa-dumbbell',            label: 'Mancuerna'       },
+        { icon: 'fa-weight-hanging',      label: 'Pesas'           },
+        { icon: 'fa-person-running',      label: 'Correr'          },
+        { icon: 'fa-person-walking',      label: 'Caminar'         },
+        { icon: 'fa-person-biking',       label: 'Bicicleta'       },
+        { icon: 'fa-person-swimming',     label: 'Natación'        },
+        { icon: 'fa-bicycle',             label: 'Ciclismo'        },
+        { icon: 'fa-stopwatch',           label: 'Cronómetro'      },
+        { icon: 'fa-heart-pulse',         label: 'Cardio'          },
+        { icon: 'fa-fire',                label: 'Fuego / Intenso' },
+        { icon: 'fa-fire-flame-curved',   label: 'Llama'           },
+        { icon: 'fa-bolt',                label: 'Rayo / Energía'  },
+        { icon: 'fa-medal',               label: 'Medalla'         },
+        { icon: 'fa-trophy',              label: 'Trofeo'          },
+        { icon: 'fa-star',                label: 'Estrella'        },
+        // Deportes con pelota
+        { icon: 'fa-futbol',              label: 'Fútbol'          },
+        { icon: 'fa-basketball',          label: 'Básquet'         },
+        { icon: 'fa-football',            label: 'Fútbol americano'},
+        { icon: 'fa-volleyball',          label: 'Vóley'           },
+        { icon: 'fa-baseball',            label: 'Béisbol'         },
+        { icon: 'fa-table-tennis-paddle-ball', label: 'Ping pong' },
+        // Mente y cuerpo
+        { icon: 'fa-spa',                 label: 'Spa / Yoga'      },
+        { icon: 'fa-leaf',                label: 'Hoja / Natural'  },
+        { icon: 'fa-brain',               label: 'Mente'           },
+        { icon: 'fa-hand-peace',          label: 'Paz / Bienestar' },
+        { icon: 'fa-hands',               label: 'Manos'           },
+        { icon: 'fa-yin-yang',            label: 'Yin Yang'        },
+        { icon: 'fa-wind',                label: 'Viento / Aire'   },
+        { icon: 'fa-water',               label: 'Agua'            },
+        { icon: 'fa-sun',                 label: 'Sol'             },
+        { icon: 'fa-moon',                label: 'Luna'            },
+        { icon: 'fa-mountain',            label: 'Montaña'         },
+        // Música y ritmo (Zumba, baile)
+        { icon: 'fa-music',               label: 'Música'          },
+        { icon: 'fa-headphones',          label: 'Auriculares'     },
+        { icon: 'fa-guitar',              label: 'Guitarra'        },
+        { icon: 'fa-drum',                label: 'Batería'         },
+        // Artes marciales y combate
+        { icon: 'fa-fist-raised',         label: 'Puño / Boxeo'   },
+        { icon: 'fa-shield-halved',       label: 'Defensa'         },
+        { icon: 'fa-khanda',              label: 'Espada'          },
+        // Cuerpo
+        { icon: 'fa-child-reaching',      label: 'Estiramiento'    },
+        { icon: 'fa-person',              label: 'Persona'         },
+        { icon: 'fa-user',                label: 'Usuario'         },
+        { icon: 'fa-users',               label: 'Grupo'           },
+        // Otros útiles
+        { icon: 'fa-circle-nodes',        label: 'Funcional'       },
+        { icon: 'fa-rotate',              label: 'Circuito'        },
+        { icon: 'fa-chart-line',          label: 'Progreso'        },
+        { icon: 'fa-calendar-alt',        label: 'Calendario'      },
+        { icon: 'fa-clock',              label: 'Horario'          },
+        { icon: 'fa-map-marker-alt',      label: 'Ubicación'       },
+        { icon: 'fa-tag',                 label: 'Etiqueta'        },
+    ];
+
+    let currentIcon = '@Html.Raw(Model ?? "fa-dumbbell")';
+
+    // ── Elementos ─────────────────────────────────────────────────────────────
+    const iconValue        = document.getElementById('iconValue');
+    const selectedIconEl   = document.getElementById('selectedIconEl');
+    const selectedIconName = document.getElementById('selectedIconName');
+    const btnOpenPicker    = document.getElementById('btnOpenPicker');
+    const pickerPanel      = document.getElementById('iconPickerPanel');
+    const iconSearch       = document.getElementById('iconSearch');
+    const iconGrid         = document.getElementById('iconGrid');
+    const colorPicker      = document.getElementById('colorPicker');
+    const colorText        = document.getElementById('colorText');
+    const nameInput        = document.getElementById('Name');
+    const previewBadge     = document.getElementById('previewBadge');
+    const previewIcon      = document.getElementById('previewIcon');
+    const previewName      = document.getElementById('previewName');
+
+    // ── Render grid ───────────────────────────────────────────────────────────
+    function renderGrid(filter) {
+        const q = (filter || '').toLowerCase().trim();
+        const filtered = q
+            ? ICONS.filter(i => i.label.toLowerCase().includes(q) || i.icon.includes(q))
+            : ICONS;
+
+        iconGrid.innerHTML = filtered.map(i => `
+            <button type="button"
+                    class="icon-btn ${i.icon === currentIcon ? 'icon-btn--active' : ''}"
+                    data-icon="${i.icon}"
+                    title="${i.label}"
+                    style="border:2px solid ${i.icon === currentIcon ? 'var(--accent,#4f88e3)' : 'rgba(255,255,255,.12)'};
+                           background:${i.icon === currentIcon ? 'rgba(79,136,227,.18)' : 'rgba(255,255,255,.04)'};
+                           border-radius:8px;padding:10px 4px;cursor:pointer;
+                           display:flex;flex-direction:column;align-items:center;gap:4px;
+                           transition:all .15s;color:#e0e0e0;">
+                <i class="fas ${i.icon}" style="font-size:1.25rem;"></i>
+                <span style="font-size:.6rem;opacity:.7;text-align:center;line-height:1.1;max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.label}</span>
+            </button>`).join('');
+
+        iconGrid.querySelectorAll('.icon-btn').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                if (!btn.classList.contains('icon-btn--active'))
+                    btn.style.background = 'rgba(255,255,255,.10)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                if (!btn.classList.contains('icon-btn--active'))
+                    btn.style.background = 'rgba(255,255,255,.04)';
+            });
+            btn.addEventListener('click', () => selectIcon(btn.dataset.icon));
+        });
+    }
+
+    // ── Seleccionar ícono ─────────────────────────────────────────────────────
+    function selectIcon(icon) {
+        currentIcon = icon;
+        iconValue.value = icon;
+        selectedIconEl.className = `fas ${icon}`;
+        selectedIconName.textContent = icon;
+        previewIcon.className = `fas ${icon} me-1`;
+        pickerPanel.classList.add('d-none');
+        renderGrid(iconSearch.value);
+    }
+
+    // ── Toggle picker ─────────────────────────────────────────────────────────
+    btnOpenPicker.addEventListener('click', () => {
+        const isOpen = !pickerPanel.classList.contains('d-none');
+        if (isOpen) {
+            pickerPanel.classList.add('d-none');
+        } else {
+            pickerPanel.classList.remove('d-none');
+            renderGrid('');
+            iconSearch.value = '';
+            iconSearch.focus();
+        }
+    });
+
+    // ── Buscar ────────────────────────────────────────────────────────────────
+    iconSearch.addEventListener('input', () => renderGrid(iconSearch.value));
+
+    // ── Color picker ─────────────────────────────────────────────────────────
+    colorPicker.addEventListener('input', e => {
+        colorText.value = e.target.value;
+        previewBadge.style.backgroundColor = e.target.value;
+    });
+    colorText.addEventListener('input', e => {
+        if (/^#[0-9a-fA-F]{6}$/.test(e.target.value))
+            colorPicker.value = e.target.value;
+        previewBadge.style.backgroundColor = e.target.value;
+    });
+
+    // ── Nombre ────────────────────────────────────────────────────────────────
+    nameInput.addEventListener('input', () => {
+        previewName.textContent = nameInput.value.trim() || 'Nombre';
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    iconValue.value = currentIcon;
+
+})();
+</script>
+
+<style>
+.icon-btn:focus { outline: none; box-shadow: 0 0 0 2px var(--accent, #4f88e3); }
+#iconGrid::-webkit-scrollbar { width: 6px; }
+#iconGrid::-webkit-scrollbar-track { background: transparent; }
+#iconGrid::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+</style>

@@ -124,8 +124,9 @@ public class MembersController : Controller
             return RedirectToAction(nameof(Payments), new { id = vm.MemberId });
         }
 
-        await _paymentService.CreateAsync(vm, User.Identity?.Name ?? "system");
-        TempData["Success"] = "Pago registrado exitosamente.";
+        var payment = await _paymentService.CreateAsync(vm, User.Identity?.Name ?? "system");
+        TempData["Success"]      = "Pago registrado exitosamente.";
+        TempData["NewPaymentId"] = payment.Id;
         return RedirectToAction(nameof(Payments), new { id = vm.MemberId });
     }
 

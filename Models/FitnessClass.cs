@@ -3,20 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FitManager.Models;
 
-public enum ClassCategory
-{
-    Spinning    = 1,
-    Yoga        = 2,
-    Pilates     = 3,
-    Zumba       = 4,
-    CrossFit    = 5,
-    Functional  = 6,
-    Kickboxing  = 7,
-    Natacion    = 8,
-    Musculacion = 9,
-    Other       = 99
-}
-
 public class FitnessClass
 {
     public int Id { get; set; }
@@ -27,7 +13,8 @@ public class FitnessClass
     [MaxLength(500)]
     public string? Description { get; set; }
 
-    public ClassCategory Category { get; set; } = ClassCategory.Other;
+    public int? ClassCategoryId { get; set; }
+    public ClassCategory? Category { get; set; }
 
     [Required, MaxLength(150)]
     public string InstructorName { get; set; } = string.Empty;
@@ -52,7 +39,7 @@ public class FitnessClass
     [MaxLength(256)]
     public string? CreatedBy { get; set; }
 
-    public ICollection<ClassSchedule>  Schedules   { get; set; } = new List<ClassSchedule>();
+    public ICollection<ClassSchedule>   Schedules   { get; set; } = new List<ClassSchedule>();
     public ICollection<ClassEnrollment> Enrollments { get; set; } = new List<ClassEnrollment>();
 
     /// <summary>Cantidad de inscriptos activos</summary>

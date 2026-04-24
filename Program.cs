@@ -50,6 +50,10 @@ builder.Services.AddScoped<FitManager.Services.IPaymentService, FitManager.Servi
 builder.Services.AddScoped<FitManager.Services.IPlanService, FitManager.Services.PlanService>();
 builder.Services.AddScoped<FitManager.Services.ICashRegisterService, FitManager.Services.CashRegisterService>();
 builder.Services.AddScoped<FitManager.Services.IClassService,        FitManager.Services.ClassService>();
+builder.Services.AddScoped<FitManager.Services.IReportService,       FitManager.Services.ReportService>();
+builder.Services.AddScoped<FitManager.Services.ICompanyService,      FitManager.Services.CompanyService>();
+builder.Services.AddScoped<FitManager.Services.IRoutineService,      FitManager.Services.RoutineService>();
+builder.Services.AddScoped<FitManager.Services.INutritionService,    FitManager.Services.NutritionService>();
 
 var app = builder.Build();
 

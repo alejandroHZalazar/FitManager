@@ -1,0 +1,159 @@
+@model List<FitManager.ViewModels.MemberRoutineListViewModel>
+@{
+    var member = ViewBag.Member as FitManager.Models.Member;
+    ViewData["Title"] = $"Historial de Rutinas — {member?.FullName}";
+    ViewData["BreadcrumbParent"] = "Rutinas";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="fas fa-history me-2 text-accent"></i>Historial de Rutinas
+        </h1>
+        @if (member != null)
+        {
+            <p class="text-muted mb-0">
+                <i class="fas fa-user me-1"></i>@member.FullName
+                <span class="badge bg-dark border border-secondary ms-2">@member.MemberNumber</span>
+            </p>
+        }
+    </div>
+    <div class="page-actions d-flex gap-2">
+        @if (member != null)
+        {
+            <a asp-controller="Members" asp-action="Details" asp-route-id="@member.Id"
+               class="btn btn-outline-secondary">
+                <i class="fas fa-user me-1"></i>Ver Socio
+            </a>
+        }
+        <a asp-action="Assign" asp-route-memberId="@member?.Id" class="btn btn-accent">
+            <i class="fas fa-plus me-1"></i>Nueva Asignación
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card fm-card">
+        <div class="card-body text-center text-muted py-5">
+            <i class="fas fa-clipboard-list fa-3x mb-3 d-block opacity-40"></i>
+            <p class="mb-2">Este socio no tiene rutinas asignadas.</p>
+            <a asp-action="Assign" asp-route-memberId="@member?.Id" class="btn btn-sm btn-outline-accent">
+                <i class="fas fa-plus me-1"></i>Asignar Rutina
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card fm-card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="historyTable" class="table table-hover fm-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Rutina</th>
+                            <th>Objetivo</th>
+                            <th class="text-center">Asignada</th>
+                            <th class="text-center">Inicio</th>
+                            <th class="text-center">Fin</th>
+                            <th class="text-center">Estado</th>
+                            <th>Notas</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model)
+                        {
+                            <tr>
+                                <td class="fw-semibold">
+                                    <a asp-controller="Routines" asp-action="Detail" asp-route-id="@a.RoutineId"
+                                       class="text-accent text-decoration-none">@a.RoutineName</a>
+                                </td>
+                                <td><span class="badge bg-dark border border-secondary">@a.GoalLabel</span></td>
+                                <td class="text-center text-muted small">@a.AssignedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")</td>
+                                <td class="text-center">@a.StartDate.ToString("dd/MM/yyyy")</td>
+                                <td class="text-center text-muted">
+                                    @(a.EndDate.HasValue ? a.EndDate.Value.ToString("dd/MM/yyyy") : "—")
+                                </td>
+                                <td class="text-center">
+                                    @if (a.IsActive)
+                                    {
+                                        <span class="badge badge-status bg-success">
+                                            <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Activa
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-status bg-secondary">
+                                            <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Finalizada
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-muted small">@a.Notes</td>
+                                <td>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <a asp-action="Print" asp-route-id="@a.Id"
+                                           class="btn btn-sm btn-icon btn-outline-secondary" title="Imprimir rutina"
+                                           target="_blank">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        @if (a.IsActive)
+                                        {
+                                            <form asp-action="Deactivate" method="post" class="d-inline deactivate-form"
+                                                  data-name="@a.RoutineName">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@a.Id" />
+                                                <input type="hidden" name="memberId" value="@a.MemberId" />
+                                                <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-deactivate"
+                                                        title="Finalizar asignación">
+                                                    <i class="fas fa-stop-circle"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    if ($('#historyTable tbody tr').length > 0) {
+        $('#historyTable').DataTable({
+            language: dtSpanish, pageLength: 25, order: [[2, 'desc']],
+            columnDefs: [{ orderable: false, targets: [7] }]
+        });
+    }
+    $(document).on('click', '.btn-deactivate', function () {
+        const form = $(this).closest('.deactivate-form');
+        const name = form.data('name');
+        Swal.fire({
+            title: '¿Finalizar asignación?',
+            html: `Se finalizará la rutina <strong>${name}</strong>.`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-stop-circle me-1"></i>Sí, finalizar',
+            cancelButtonText: 'Cancelar', background: '#1a1d27', color: '#e0e0e0'
+        }).then(r => { if (r.isConfirmed) form.submit(); });
+    });
+});
+</script>
+}

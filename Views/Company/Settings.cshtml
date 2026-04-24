@@ -1,0 +1,247 @@
+@model FitManager.ViewModels.CompanySettingsViewModel
+@{
+    ViewData["Title"] = "Configuración de la Empresa";
+    ViewData["BreadcrumbParent"] = "Administración";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-building me-2 text-accent"></i>Datos de la Empresa</h1>
+        <p class="text-muted mb-0">Configurá la información de tu empresa y el logotipo del sistema</p>
+    </div>
+</div>
+
+<form asp-action="Settings" asp-controller="Company" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <div class="row g-4">
+
+        <!-- ── Columna izquierda: Logotipo ────────────────────────────────── -->
+        <div class="col-lg-4">
+            <div class="card fm-card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-image me-2 text-accent"></i>Logotipo</h5>
+                </div>
+                <div class="card-body d-flex flex-column align-items-center text-center gap-3">
+
+                    <!-- Preview -->
+                    <div id="logoPreviewWrap"
+                         class="rounded d-flex align-items-center justify-content-center"
+                         style="width:180px;height:180px;background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.15);overflow:hidden;">
+                        @if (!string.IsNullOrEmpty(Model.CurrentLogoPath))
+                        {
+                            <img id="logoPreview" src="/@Model.CurrentLogoPath?v=@DateTime.UtcNow.Ticks"
+                                 alt="Logo" style="max-width:100%;max-height:100%;object-fit:contain;" />
+                        }
+                        else
+                        {
+                            <div id="logoPlaceholder">
+                                <i class="fas fa-image fa-3x text-muted opacity-50"></i>
+                                <div class="text-muted small mt-2">Sin logotipo</div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- File input -->
+                    <div class="w-100">
+                        <label asp-for="LogoFile" class="form-label small text-muted">
+                            JPG, PNG, SVG, WEBP — máx. 3 MB
+                        </label>
+                        <input asp-for="LogoFile" type="file" class="form-control" id="logoFileInput"
+                               accept=".jpg,.jpeg,.png,.gif,.svg,.webp" />
+                        <span asp-validation-for="LogoFile" class="text-danger small"></span>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.CurrentLogoPath))
+                    {
+                        <form asp-action="DeleteLogo" asp-controller="Company" method="post" class="w-100" id="deleteLogoForm">
+                            @Html.AntiForgeryToken()
+                            <button type="button" class="btn btn-outline-danger btn-sm w-100" id="btnDeleteLogo">
+                                <i class="fas fa-trash me-1"></i>Eliminar logotipo actual
+                            </button>
+                        </form>
+                    }
+
+                    <div class="text-muted small">
+                        El logotipo aparece en el menú lateral y en los reportes del sistema.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Columna derecha: Datos de la empresa ───────────────────────── -->
+        <div class="col-lg-8">
+            <div class="card fm-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2 text-accent"></i>Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Nombre -->
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                            <input asp-for="Name" class="form-control" placeholder="Ej. GymPro Centro" required />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Slogan -->
+                        <div class="col-12">
+                            <label asp-for="Slogan" class="form-label">Slogan / Lema</label>
+                            <input asp-for="Slogan" class="form-control" placeholder="Ej. Tu mejor versión, cada día" />
+                        </div>
+
+                        <!-- CUIT / RUT -->
+                        <div class="col-md-6">
+                            <label asp-for="TaxId" class="form-label">CUIT / RUT / NIF</label>
+                            <input asp-for="TaxId" class="form-control" placeholder="Ej. 20-12345678-9" />
+                        </div>
+
+                        <!-- País -->
+                        <div class="col-md-6">
+                            <label asp-for="Country" class="form-label">País</label>
+                            <input asp-for="Country" class="form-control" placeholder="Argentina" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fm-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-map-marker-alt me-2 text-accent"></i>Ubicación</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Dirección -->
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label">Dirección</label>
+                            <input asp-for="Address" class="form-control" placeholder="Ej. Av. Corrientes 1234, piso 2" />
+                        </div>
+
+                        <!-- Ciudad -->
+                        <div class="col-md-6">
+                            <label asp-for="City" class="form-label">Ciudad</label>
+                            <input asp-for="City" class="form-control" placeholder="Buenos Aires" />
+                        </div>
+
+                        <!-- Provincia -->
+                        <div class="col-md-6">
+                            <label asp-for="Province" class="form-label">Provincia / Estado</label>
+                            <input asp-for="Province" class="form-control" placeholder="CABA" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fm-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-phone me-2 text-accent"></i>Contacto</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Teléfono -->
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label">Teléfono principal</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input asp-for="Phone" class="form-control" placeholder="+54 11 1234-5678" />
+                            </div>
+                        </div>
+
+                        <!-- Teléfono 2 -->
+                        <div class="col-md-6">
+                            <label asp-for="Phone2" class="form-label">Teléfono alternativo</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone-alt"></i></span>
+                                <input asp-for="Phone2" class="form-control" placeholder="+54 11 8765-4321" />
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input asp-for="Email" class="form-control" type="email" placeholder="info@migimnasio.com" />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Website -->
+                        <div class="col-md-6">
+                            <label asp-for="Website" class="form-label">Sitio web</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-globe"></i></span>
+                                <input asp-for="Website" class="form-control" placeholder="www.migimnasio.com" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card fm-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="fas fa-sticky-note me-2 text-accent"></i>Notas Internas</h5>
+                </div>
+                <div class="card-body">
+                    <textarea asp-for="Notes" class="form-control" rows="3"
+                              placeholder="Información adicional, notas internas..."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <button type="submit" class="btn btn-accent px-4">
+                    <i class="fas fa-save me-2"></i>Guardar Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+// ── Preview de logo en tiempo real ────────────────────────────────────────────
+document.getElementById('logoFileInput')?.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    const wrap = document.getElementById('logoPreviewWrap');
+    const reader = new FileReader();
+    reader.onload = e => {
+        wrap.innerHTML = `<img src="${e.target.result}" alt="Logo"
+            style="max-width:100%;max-height:100%;object-fit:contain;" />`;
+    };
+    reader.readAsDataURL(file);
+});
+
+// ── Confirmar eliminación de logo ─────────────────────────────────────────────
+document.getElementById('btnDeleteLogo')?.addEventListener('click', function () {
+    Swal.fire({
+        title: '¿Eliminar logotipo?',
+        text: 'Se eliminará el logo actual del sistema.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i>Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        background: '#1a1d27',
+        color: '#e0e0e0'
+    }).then(result => {
+        if (result.isConfirmed)
+            document.getElementById('deleteLogoForm').submit();
+    });
+});
+
+// ── Toast de éxito ────────────────────────────────────────────────────────────
+@if (TempData["Success"] != null)
+{
+    <text>
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success',
+        title: '@TempData["Success"]', showConfirmButton: false,
+        timer: 3500, background: '#1a1d27', color: '#e0e0e0' });
+    </text>
+}
+</script>
+}

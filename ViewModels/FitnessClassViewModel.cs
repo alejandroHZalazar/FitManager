@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FitManager.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace FitManager.ViewModels;
 
@@ -106,7 +107,10 @@ public class FitnessClassViewModel
     public string? Description { get; set; }
 
     [Display(Name = "Categoría")]
-    public ClassCategory Category { get; set; } = ClassCategory.Other;
+    public int? ClassCategoryId { get; set; }
+
+    // Populated by the controller for the dropdown
+    public List<SelectListItem> Categories { get; set; } = new();
 
     [Required(ErrorMessage = "El instructor es obligatorio")]
     [MaxLength(150)]

@@ -1,0 +1,75 @@
+@{
+    ViewData["Title"] = "Reportes";
+    ViewData["BreadcrumbParent"] = "Reportes";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-chart-bar me-2 text-accent"></i>Reportes</h1>
+        <p class="text-muted mb-0">Seleccioná el reporte que querés generar</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6 col-lg-3">
+        <a asp-action="Revenue" asp-controller="Reports" class="text-decoration-none">
+            <div class="fm-card p-4 text-center h-100 report-hub-card">
+                <div class="report-hub-icon bg-success bg-opacity-10 text-success mx-auto mb-3">
+                    <i class="fas fa-dollar-sign fa-2x"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Ingresos</h5>
+                <p class="text-muted small mb-0">Ingresos por período, por plan y por método de pago</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a asp-action="ActiveMembers" asp-controller="Reports" class="text-decoration-none">
+            <div class="fm-card p-4 text-center h-100 report-hub-card">
+                <div class="report-hub-icon bg-primary bg-opacity-10 text-primary mx-auto mb-3">
+                    <i class="fas fa-users fa-2x"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Socios Activos</h5>
+                <p class="text-muted small mb-0">Socios vigentes, altas del período y estado de planes</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a asp-action="Debtors" asp-controller="Reports" class="text-decoration-none">
+            <div class="fm-card p-4 text-center h-100 report-hub-card">
+                <div class="report-hub-icon bg-danger bg-opacity-10 text-danger mx-auto mb-3">
+                    <i class="fas fa-exclamation-circle fa-2x"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Deudores</h5>
+                <p class="text-muted small mb-0">Pagos pendientes y morosos con antigüedad de deuda</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a asp-action="Cash" asp-controller="Reports" class="text-decoration-none">
+            <div class="fm-card p-4 text-center h-100 report-hub-card">
+                <div class="report-hub-icon bg-warning bg-opacity-10 text-warning mx-auto mb-3">
+                    <i class="fas fa-cash-register fa-2x"></i>
+                </div>
+                <h5 class="fw-bold mb-1">Informe de Caja</h5>
+                <p class="text-muted small mb-0">Resumen de cajas: ingresos, egresos y balance neto</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<style>
+.report-hub-card {
+    transition: var(--fm-transition);
+    cursor: pointer;
+}
+.report-hub-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    border-color: var(--fm-accent) !important;
+}
+.report-hub-icon {
+    width: 72px; height: 72px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+}
+</style>

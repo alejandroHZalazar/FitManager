@@ -1,0 +1,169 @@
+@model FitManager.ViewModels.NutritionPlanEditViewModel
+@using FitManager.Models
+
+<div class="row g-4">
+    <!-- ── Columna izquierda: Info del plan ───────────────────────────────── -->
+    <div class="col-lg-4">
+        <div class="card fm-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2 text-accent"></i>Información General</h5>
+            </div>
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input asp-for="Name" class="form-control" placeholder="Ej. Plan Bajar de Peso" required />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Goal" class="form-label">Objetivo</label>
+                    <select asp-for="Goal" class="form-select">
+                        <option value="1">🏃 Bajar de Peso</option>
+                        <option value="2">💪 Ganar Masa</option>
+                        <option value="3">⚖️ Mantenimiento</option>
+                        <option value="4">✨ Definición</option>
+                        <option value="5">🚴 Resistencia</option>
+                        <option value="99">Otro</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DurationDays" class="form-label">Duración</label>
+                    <select asp-for="DurationDays" class="form-select">
+                        <option value="7">Semanal (7 días)</option>
+                        <option value="14">Quincenal (14 días)</option>
+                        <option value="30">Mensual (30 días)</option>
+                        <option value="60">Bimestral (60 días)</option>
+                        <option value="90">Trimestral (90 días)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Descripción</label>
+                    <textarea asp-for="Description" class="form-control" rows="2"
+                              placeholder="Breve descripción del plan..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="GeneralNotes" class="form-label">
+                        <i class="fas fa-lightbulb me-1 text-warning"></i>Recomendaciones Generales
+                    </label>
+                    <textarea asp-for="GeneralNotes" class="form-control" rows="4"
+                              placeholder="Ej: Tomar 2L de agua por día&#10;Evitar azúcares procesados&#10;Respetar horarios de comidas"></textarea>
+                    <div class="form-text">Tips de hidratación, restricciones, hábitos, etc.</div>
+                </div>
+
+                <div class="mb-3 d-flex gap-4">
+                    <div class="form-check form-switch">
+                        <input asp-for="IsTemplate" class="form-check-input" type="checkbox" role="switch" />
+                        <label asp-for="IsTemplate" class="form-check-label">Plantilla reutilizable</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label">Activo</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-accent w-100">
+                    <i class="fas fa-save me-2"></i>Guardar Plan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Columna derecha: Comidas ───────────────────────────────────────── -->
+    <div class="col-lg-8">
+        <div class="card fm-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-utensils me-2 text-accent"></i>Plan Alimenticio</h5>
+            </div>
+            <div class="card-body">
+                @for (int i = 0; i < Model.Meals.Count; i++)
+                {
+                    var meal = Model.Meals[i];
+                    var collapseId = $"meal-collapse-{i}";
+                    var headingId  = $"meal-heading-{i}";
+                    var isOptional = meal.IsOptional;
+                    <input type="hidden" name="Meals[@i].MealType" value="@((int)meal.MealType)" />
+
+                    <div class="meal-card mb-3 rounded" style="border:1px solid rgba(255,255,255,.12);"
+                         id="meal-card-@i">
+                        <!-- Header de la comida -->
+                        <div class="d-flex align-items-center gap-2 p-3"
+                             style="background:rgba(255,255,255,.05); border-radius:6px 6px 0 0;">
+                            <div class="form-check form-switch mb-0">
+                                <input type="checkbox"
+                                       name="Meals[@i].IsEnabled"
+                                       value="true"
+                                       class="form-check-input meal-toggle"
+                                       role="switch"
+                                       id="enable_@i"
+                                       data-target="@collapseId"
+                                       @(meal.IsEnabled ? "checked" : "") />
+                            </div>
+                            <label for="enable_@i" class="mb-0 d-flex align-items-center gap-2 flex-grow-1" style="cursor:pointer;">
+                                <span style="width:22px; text-align:center;">
+                                    <i class="@meal.Icon text-accent"></i>
+                                </span>
+                                <span class="fw-semibold">@meal.DefaultLabel</span>
+                                @if (isOptional)
+                                {
+                                    <span class="badge bg-dark border border-secondary text-muted small ms-1">opcional</span>
+                                }
+                            </label>
+                        </div>
+
+                        <!-- Cuerpo colapsable -->
+                        <div id="@collapseId" class="meal-body p-3 @(!meal.IsEnabled ? "d-none" : "")">
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Nombre personalizado</label>
+                                <input type="text"
+                                       name="Meals[@i].CustomName"
+                                       value="@meal.CustomName"
+                                       class="form-control form-control-sm"
+                                       placeholder="@meal.DefaultLabel (dejar vacío para usar el nombre por defecto)" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">Contenido <span class="text-accent">*</span></label>
+                                <textarea name="Meals[@i].Content"
+                                          class="form-control"
+                                          rows="3"
+                                          placeholder="Ej: Pollo a la plancha + ensalada mixta + 1 fruta de estación">@meal.Content</textarea>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Cantidades aproximadas</label>
+                                    <input type="text"
+                                           name="Meals[@i].Quantities"
+                                           value="@meal.Quantities"
+                                           class="form-control form-control-sm"
+                                           placeholder="Ej: 200g pollo, 1 taza arroz" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Observaciones</label>
+                                    <input type="text"
+                                           name="Meals[@i].Notes"
+                                           value="@meal.Notes"
+                                           class="form-control form-control-sm"
+                                           placeholder="Ej: preferir cocción al vapor" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.meal-toggle').forEach(function (toggle) {
+    toggle.addEventListener('change', function () {
+        const targetId = this.dataset.target;
+        const body = document.getElementById(targetId);
+        if (body) body.classList.toggle('d-none', !this.checked);
+    });
+});
+</script>

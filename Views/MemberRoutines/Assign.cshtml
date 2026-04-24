@@ -1,0 +1,173 @@
+@model FitManager.ViewModels.AssignRoutineViewModel
+@{
+    ViewData["Title"] = "Asignar Rutina";
+    ViewData["BreadcrumbParent"] = "Rutinas";
+    var preselected = ViewBag.PreselectedMember as FitManager.Models.Member;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-user-plus me-2 text-accent"></i>Asignar Rutina a Socio</h1>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Volver</a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card fm-card">
+            <div class="card-body">
+                <form asp-action="Assign" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+
+                    <!-- ── Búsqueda de socio ──────────────────────────────────── -->
+                    <div class="mb-3">
+                        <label class="form-label">Socio <span class="text-danger">*</span></label>
+
+                        @if (preselected != null)
+                        {
+                            <!-- Socio preseleccionado (viene desde detalle de socio) -->
+                            <input type="hidden" name="MemberId" value="@preselected.Id" />
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary">
+                                    <i class="fas fa-user text-accent"></i>
+                                </span>
+                                <input type="text" class="form-control"
+                                       value="@preselected.FullName (@preselected.MemberNumber)" readonly />
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Búsqueda dinámica -->
+                            <input type="hidden" id="memberId" name="MemberId" value="@Model.MemberId" />
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" id="memberSearch" class="form-control"
+                                       placeholder="Buscar por nombre o N° de socio..."
+                                       autocomplete="off" />
+                            </div>
+                            <div id="memberResults" class="list-group mt-1 position-absolute z-3" style="min-width:400px; display:none;"></div>
+                            <div id="memberSelected" class="mt-1 text-success small d-none">
+                                <i class="fas fa-check-circle me-1"></i><span id="memberSelectedName"></span>
+                                <a href="#" id="clearMember" class="text-danger ms-2 small">cambiar</a>
+                            </div>
+                            <span asp-validation-for="MemberId" class="text-danger small"></span>
+                        }
+                    </div>
+
+                    <!-- ── Selección de rutina ────────────────────────────────── -->
+                    <div class="mb-3">
+                        <label asp-for="RoutineId" class="form-label">Rutina <span class="text-danger">*</span></label>
+                        <select asp-for="RoutineId" asp-items="Model.RoutineOptions" class="form-select">
+                            <option value="">— Seleccioná una rutina —</option>
+                        </select>
+                        <span asp-validation-for="RoutineId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- ── Fechas ──────────────────────────────────────────────── -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="StartDate" class="form-label">Fecha de Inicio <span class="text-danger">*</span></label>
+                            <input asp-for="StartDate" class="form-control" type="date" />
+                            <span asp-validation-for="StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EndDate" class="form-label">Fecha de Fin</label>
+                            <input asp-for="EndDate" class="form-control" type="date" />
+                            <div class="form-text">Opcional. Si no se define, la rutina se mantiene activa.</div>
+                        </div>
+                    </div>
+
+                    <!-- ── Notas ──────────────────────────────────────────────── -->
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label">Notas / Observaciones</label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"
+                                  placeholder="Indicaciones especiales para el socio..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-accent">
+                            <i class="fas fa-save me-1"></i>Asignar Rutina
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+@if (ViewBag.PreselectedMember == null)
+{
+    <text>
+(function () {
+    const searchInput  = document.getElementById('memberSearch');
+    const memberIdInp  = document.getElementById('memberId');
+    const resultsDiv   = document.getElementById('memberResults');
+    const selectedDiv  = document.getElementById('memberSelected');
+    const selectedName = document.getElementById('memberSelectedName');
+    const clearBtn     = document.getElementById('clearMember');
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        const q = this.value.trim();
+        if (q.length < 2) { resultsDiv.style.display = 'none'; return; }
+        debounceTimer = setTimeout(() => fetchMembers(q), 300);
+    });
+
+    function fetchMembers(q) {
+        fetch(`/Members/SearchJson?q=${encodeURIComponent(q)}`)
+            .then(r => r.json())
+            .then(data => {
+                resultsDiv.innerHTML = '';
+                if (!data.length) {
+                    resultsDiv.innerHTML = '<div class="list-group-item bg-dark text-muted small">Sin resultados</div>';
+                }
+                data.forEach(m => {
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.className = 'list-group-item list-group-item-action bg-dark text-light border-secondary';
+                    a.innerHTML = `<strong>${m.text}</strong> <span class="text-muted ms-2 small">${m.number}</span>`;
+                    a.addEventListener('click', e => {
+                        e.preventDefault();
+                        selectMember(m.id, `${m.text} (${m.number})`);
+                    });
+                    resultsDiv.appendChild(a);
+                });
+                resultsDiv.style.display = 'block';
+            });
+    }
+
+    function selectMember(id, label) {
+        memberIdInp.value      = id;
+        searchInput.style.display = 'none';
+        resultsDiv.style.display  = 'none';
+        selectedName.textContent  = label;
+        selectedDiv.classList.remove('d-none');
+    }
+
+    clearBtn?.addEventListener('click', e => {
+        e.preventDefault();
+        memberIdInp.value = '';
+        searchInput.value = '';
+        searchInput.style.display = '';
+        selectedDiv.classList.add('d-none');
+    });
+
+    document.addEventListener('click', e => {
+        if (!resultsDiv.contains(e.target) && e.target !== searchInput)
+            resultsDiv.style.display = 'none';
+    });
+})();
+    </text>
+}
+</script>
+}

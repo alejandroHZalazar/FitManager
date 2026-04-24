@@ -1,0 +1,230 @@
+@model FitManager.ViewModels.CashReportViewModel
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Informe de Caja";
+    ViewData["BreadcrumbParent"] = "Reportes";
+}
+
+@await Html.PartialAsync("_ReportCompanyHeader", (FitManager.Models.CompanySettings?)ViewBag.Company)
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-cash-register me-2 text-warning"></i>Informe de Caja</h1>
+        <p class="text-muted mb-0">@Model.Filter.PresetLabel</p>
+    </div>
+    <a asp-action="Index" asp-controller="Reports" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Reportes
+    </a>
+</div>
+
+@await Html.PartialAsync("_FilterBar", Model.Filter)
+
+@* ── KPIs ─────────────────────────────────────────────────────────────────── *@
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fas fa-arrow-down"></i></div>
+            <div>
+                <div class="stat-value">$@Model.TotalIncome.ToString("N0")</div>
+                <div class="stat-label">Total ingresos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card" style="border-color:rgba(220,53,69,0.3)">
+            <div class="stat-icon" style="background:rgba(220,53,69,0.12);color:#dc3545">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div>
+                <div class="stat-value">$@Model.TotalExpenses.ToString("N0")</div>
+                <div class="stat-label">Total egresos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card stat-accent">
+            <div class="stat-icon"><i class="fas fa-credit-card"></i></div>
+            <div>
+                <div class="stat-value">$@Model.TotalPayments.ToString("N0")</div>
+                <div class="stat-label">Cuotas cobradas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fas fa-balance-scale"></i></div>
+            <div>
+                <div class="stat-value @(Model.NetBalance >= 0 ? "text-success" : "text-danger")">
+                    $@Model.NetBalance.ToString("N0")
+                </div>
+                <div class="stat-label">Balance neto</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fas fa-store"></i></div>
+            <div>
+                <div class="stat-value">@Model.ClosedRegisters/@Model.RegistersCount</div>
+                <div class="stat-label">Cajas cerradas</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Gráfico por día ──────────────────────────────────────────────────────── *@
+@if (Model.ByDay.Any())
+{
+    <div class="fm-card mb-4">
+        <div class="card-header"><h6 class="card-title mb-0"><i class="fas fa-chart-line me-2 text-accent"></i>Movimientos diarios</h6></div>
+        <div class="card-body">
+            <canvas id="cashChart" height="70"></canvas>
+        </div>
+    </div>
+}
+
+@* ── Tabla de cajas ───────────────────────────────────────────────────────── *@
+@if (!Model.Registers.Any())
+{
+    <div class="fm-card p-5 text-center">
+        <i class="fas fa-store-slash fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Sin cajas en el período seleccionado</h5>
+    </div>
+}
+else
+{
+    <div class="fm-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="card-title mb-0"><i class="fas fa-list me-2 text-accent"></i>Detalle por caja</h6>
+            <span class="badge bg-secondary">@Model.Registers.Count cajas</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0" id="cashTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Abierta por</th>
+                        <th>Cerrada por</th>
+                        <th class="text-end">Saldo inicial</th>
+                        <th class="text-end">Cuotas</th>
+                        <th class="text-end">Ingresos extra</th>
+                        <th class="text-end">Egresos</th>
+                        <th class="text-end">Balance neto</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Registers)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@r.Date.ToString("dd/MM/yyyy")</td>
+                            <td><small>@r.OpenedBy</small></td>
+                            <td><small class="text-muted">@(r.ClosedBy ?? "–")</small></td>
+                            <td class="text-end">$@r.OpeningBalance.ToString("N0")</td>
+                            <td class="text-end text-success">$@r.PaymentsTotal.ToString("N0")</td>
+                            <td class="text-end text-info">$@r.Income.ToString("N0")</td>
+                            <td class="text-end text-danger">$@r.Expenses.ToString("N0")</td>
+                            <td class="text-end fw-bold @(r.NetBalance >= 0 ? "text-success" : "text-danger")">
+                                $@r.NetBalance.ToString("N0")
+                            </td>
+                            <td>
+                                @if (r.Status == CashRegisterStatus.Open)
+                                {
+                                    <span class="badge bg-success">Abierta</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Cerrada</span>
+                                }
+                                @if (r.WasReopened)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1" title="Fue reabierta"><i class="fas fa-redo"></i></span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-controller="CashRegister" asp-action="Detail" asp-route-id="@r.Id"
+                                   class="btn btn-icon btn-sm btn-outline-secondary" title="Ver caja">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-active fw-bold">
+                        <td colspan="4">Totales</td>
+                        <td class="text-end text-success">$@Model.TotalPayments.ToString("N0")</td>
+                        <td class="text-end text-info">$@(Model.TotalIncome - Model.TotalPayments).ToString("N0")</td>
+                        <td class="text-end text-danger">$@Model.TotalExpenses.ToString("N0")</td>
+                        <td class="text-end @(Model.NetBalance >= 0 ? "text-success" : "text-danger")">$@Model.NetBalance.ToString("N0")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color = '#8892a4';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.07)';
+
+@if (Model.ByDay.Any())
+{
+    <text>
+    new Chart(document.getElementById('cashChart'), {
+        type: 'bar',
+        data: {
+            labels: [@Html.Raw(string.Join(",", Model.ByDay.Select(d => $"'{d.Label}'")))],
+            datasets: [
+                {
+                    label: 'Cuotas',
+                    data: [@string.Join(",", Model.ByDay.Select(d => d.Payments))],
+                    backgroundColor: 'rgba(255,107,53,0.7)',
+                    borderColor: '#ff6b35', borderWidth: 1, borderRadius: 3
+                },
+                {
+                    label: 'Ingresos extra',
+                    data: [@string.Join(",", Model.ByDay.Select(d => d.Income))],
+                    backgroundColor: 'rgba(13,202,240,0.5)',
+                    borderColor: '#0dcaf0', borderWidth: 1, borderRadius: 3
+                },
+                {
+                    label: 'Egresos',
+                    data: [@string.Join(",", Model.ByDay.Select(d => d.Expenses))],
+                    backgroundColor: 'rgba(220,53,69,0.5)',
+                    borderColor: '#dc3545', borderWidth: 1, borderRadius: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: false },
+                y: { ticks: { callback: v => '$' + v.toLocaleString() } }
+            },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ' $' + ctx.raw.toLocaleString()
+                    }
+                }
+            }
+        }
+    });
+    </text>
+}
+
+if (typeof $.fn.DataTable !== 'undefined' && document.getElementById('cashTable')) {
+    $('#cashTable').DataTable({
+        language: { url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json' },
+        order: [[0, 'desc']],
+        pageLength: 25
+    });
+}
+</script>
+}

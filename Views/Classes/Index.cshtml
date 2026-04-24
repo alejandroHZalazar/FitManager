@@ -92,18 +92,7 @@
                             </td>
                             <td>
                                 <span class="badge bg-dark border border-secondary">
-                                    @(cls.Category switch {
-                                        "Spinning"    => "Spinning",
-                                        "Yoga"        => "Yoga",
-                                        "Pilates"     => "Pilates",
-                                        "Zumba"       => "Zumba",
-                                        "CrossFit"    => "CrossFit",
-                                        "Functional"  => "Funcional",
-                                        "Kickboxing"  => "Kickboxing",
-                                        "Natacion"    => "Natación",
-                                        "Musculacion" => "Musculación",
-                                        _             => "Otro"
-                                    })
+                                    @cls.Category
                                 </span>
                             </td>
                             <td>@cls.InstructorName</td>

@@ -15,6 +15,20 @@ public static class DbInitializer
         // Apply pending migrations
         await db.Database.MigrateAsync();
 
+        // ── Fix AUTO_INCREMENT on Routine module tables ──────────────────────
+        // The initial AddRoutinesModule migration was created without the
+        // Pomelo identity annotation, so the Id columns were created without
+        // AUTO_INCREMENT. This idempotent fix ensures they have it.
+        foreach (var table in new[] { "Exercises", "Routines", "RoutineDays", "RoutineExercises", "MemberRoutines" })
+        {
+            try
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    $"ALTER TABLE `{table}` MODIFY `Id` INT NOT NULL AUTO_INCREMENT;");
+            }
+            catch { /* table may not exist yet, or already has AUTO_INCREMENT */ }
+        }
+
         // ── Roles ─────────────────────────────────────────────────────────────
         var roles = new[]
         {
@@ -69,11 +83,28 @@ public static class DbInitializer
                 new() { Id = 16, Name = "Clases",           Icon = "fas fa-chalkboard-teacher", Url = "#",                    OrderIndex = 4 },
                 new() { Id = 17, Name = "Agenda Semanal",   Icon = "fas fa-calendar-week",        Controller = "Classes",      Action = "Calendar",        ParentId = 16, OrderIndex = 1 },
                 new() { Id = 18, Name = "Gestión de Clases",Icon = "fas fa-list-alt",             Controller = "Classes",      Action = "Index",           ParentId = 16, OrderIndex = 2 },
+                new() { Id = 24, Name = "Categorías",       Icon = "fas fa-tags",                 Controller = "ClassCategories", Action = "Index",         ParentId = 16, OrderIndex = 3 },
+                // ── Rutinas
+                new() { Id = 26, Name = "Rutinas",            Icon = "fas fa-clipboard-list",    Url = "#",                     OrderIndex = 5 },
+                new() { Id = 27, Name = "Ejercicios",         Icon = "fas fa-dumbbell",                Controller = "Exercises",    Action = "Index",      ParentId = 26, OrderIndex = 1 },
+                new() { Id = 28, Name = "Gestión de Rutinas", Icon = "fas fa-list-alt",                Controller = "Routines",     Action = "Index",      ParentId = 26, OrderIndex = 2 },
+                new() { Id = 29, Name = "Asignaciones",       Icon = "fas fa-user-check",              Controller = "MemberRoutines", Action = "Index",    ParentId = 26, OrderIndex = 3 },
+                // ── Nutrición
+                new() { Id = 30, Name = "Nutrición",          Icon = "fas fa-leaf",               Url = "#",                     OrderIndex = 6 },
+                new() { Id = 31, Name = "Planes",             Icon = "fas fa-clipboard-list",           Controller = "NutritionPlans", Action = "Index",    ParentId = 30, OrderIndex = 1 },
+                new() { Id = 32, Name = "Asignaciones",       Icon = "fas fa-user-check",               Controller = "MemberNutrition",Action = "Index",    ParentId = 30, OrderIndex = 2 },
+                // ── Reportes
+                new() { Id = 19, Name = "Reportes",          Icon = "fas fa-chart-bar",          Url = "#",                    OrderIndex = 7 },
+                new() { Id = 20, Name = "Ingresos",          Icon = "fas fa-dollar-sign",          Controller = "Reports",      Action = "Revenue",         ParentId = 19, OrderIndex = 1 },
+                new() { Id = 21, Name = "Socios Activos",    Icon = "fas fa-users",                Controller = "Reports",      Action = "ActiveMembers",   ParentId = 19, OrderIndex = 2 },
+                new() { Id = 22, Name = "Deudores",          Icon = "fas fa-exclamation-circle",   Controller = "Reports",      Action = "Debtors",         ParentId = 19, OrderIndex = 3 },
+                new() { Id = 23, Name = "Informe de Caja",   Icon = "fas fa-cash-register",        Controller = "Reports",      Action = "Cash",            ParentId = 19, OrderIndex = 4 },
                 // ── Administración
                 new() { Id = 12, Name = "Administración",  Icon = "fas fa-cog",            Url = "#",                        OrderIndex = 10 },
                 new() { Id = 13, Name = "Roles",            Icon = "fas fa-shield-alt",           Controller = "Roles",        Action = "Index",           ParentId = 12, OrderIndex = 1 },
                 new() { Id = 14, Name = "Usuarios",         Icon = "fas fa-user-cog",             Controller = "Users",        Action = "Index",           ParentId = 12, OrderIndex = 2 },
-                new() { Id = 15, Name = "Permisos Menú",   Icon = "fas fa-bars",                 Controller = "Roles",        Action = "MenuPermissions", ParentId = 12, OrderIndex = 3 }
+                new() { Id = 15, Name = "Permisos Menú",   Icon = "fas fa-bars",                 Controller = "Roles",        Action = "MenuPermissions", ParentId = 12, OrderIndex = 3 },
+                new() { Id = 25, Name = "Empresa",          Icon = "fas fa-building",              Controller = "Company",      Action = "Settings",        ParentId = 12, OrderIndex = 4 }
             };
 
             db.MenuItems.AddRange(menuItems);
@@ -83,14 +114,14 @@ public static class DbInitializer
             var adminRole = await db.Roles.FirstAsync(r => r.Name == "Administrador");
             db.RoleMenuPermissions.AddRange(menuItems.Select(m => new RoleMenuPermission { RoleId = adminRole.Id, MenuItemId = m.Id, IsEnabled = true }));
 
-            // Recepcionista: socios + cuotas/pagos + clases (sin Administración)
+            // Recepcionista: socios + cuotas/pagos + clases + rutinas + nutrición + reportes (sin Administración)
             var recepRole = await db.Roles.FirstAsync(r => r.Name == "Recepcionista");
-            foreach (var id in new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18 })
+            foreach (var id in new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 24, 26, 27, 28, 29, 30, 31, 32, 19, 20, 21, 22, 23 })
                 db.RoleMenuPermissions.Add(new RoleMenuPermission { RoleId = recepRole.Id, MenuItemId = id, IsEnabled = true });
 
-            // Instructor: socios + agenda de clases
+            // Instructor: socios + clases + rutinas + nutrición
             var instrRole = await db.Roles.FirstAsync(r => r.Name == "Instructor");
-            foreach (var id in new[] { 1, 2, 3, 16, 17 })
+            foreach (var id in new[] { 1, 2, 3, 16, 17, 26, 27, 28, 29, 30, 31, 32 })
                 db.RoleMenuPermissions.Add(new RoleMenuPermission { RoleId = instrRole.Id, MenuItemId = id, IsEnabled = true });
 
             await db.SaveChangesAsync();
@@ -124,6 +155,71 @@ public static class DbInitializer
             db.Plans.AddRange(plans);
             await db.SaveChangesAsync();
         }
+
+        // ── Ejercicios predefinidos ───────────────────────────────────────────
+        if (!await db.Exercises.AnyAsync())
+        {
+            var exercises = new List<Exercise>
+            {
+                // Pecho
+                new() { Name = "Press de Banca",          MuscleGroup = MuscleGroup.Chest,      ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Press de Banca Inclinado", MuscleGroup = MuscleGroup.Chest,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Aperturas con Mancuernas", MuscleGroup = MuscleGroup.Chest,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Fondos en Paralelas",      MuscleGroup = MuscleGroup.Chest,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Crossover en Polea",       MuscleGroup = MuscleGroup.Chest,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Espalda
+                new() { Name = "Dominadas",                MuscleGroup = MuscleGroup.Back,       ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Remo con Barra",           MuscleGroup = MuscleGroup.Back,       ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Jalón al Pecho",           MuscleGroup = MuscleGroup.Back,       ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Remo en Polea Baja",       MuscleGroup = MuscleGroup.Back,       ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Peso Muerto",              MuscleGroup = MuscleGroup.Back,       ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Hombros
+                new() { Name = "Press Militar con Barra",  MuscleGroup = MuscleGroup.Shoulders,  ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Elevaciones Laterales",    MuscleGroup = MuscleGroup.Shoulders,  ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Elevaciones Frontales",    MuscleGroup = MuscleGroup.Shoulders,  ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Pájaro / Elevaciones Posteriores", MuscleGroup = MuscleGroup.Shoulders, ExerciseType = ExerciseType.Strength, IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Bíceps
+                new() { Name = "Curl con Barra",           MuscleGroup = MuscleGroup.Biceps,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Curl Martillo",            MuscleGroup = MuscleGroup.Biceps,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Curl Concentrado",         MuscleGroup = MuscleGroup.Biceps,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Curl en Polea Baja",       MuscleGroup = MuscleGroup.Biceps,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Tríceps
+                new() { Name = "Press Francés",            MuscleGroup = MuscleGroup.Triceps,    ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Extensión en Polea Alta",  MuscleGroup = MuscleGroup.Triceps,    ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Fondos para Tríceps",      MuscleGroup = MuscleGroup.Triceps,    ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Cuádriceps
+                new() { Name = "Sentadilla",               MuscleGroup = MuscleGroup.Quadriceps, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Prensa de Piernas",        MuscleGroup = MuscleGroup.Quadriceps, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Extensión de Cuádriceps",  MuscleGroup = MuscleGroup.Quadriceps, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Zancada / Lunges",         MuscleGroup = MuscleGroup.Quadriceps, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Femorales
+                new() { Name = "Curl de Femorales",        MuscleGroup = MuscleGroup.Hamstrings, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Peso Muerto Rumano",       MuscleGroup = MuscleGroup.Hamstrings, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Pantorrillas
+                new() { Name = "Elevación de Talones de Pie", MuscleGroup = MuscleGroup.Calves,  ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Elevación de Talones Sentado", MuscleGroup = MuscleGroup.Calves, ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Glúteos
+                new() { Name = "Hip Thrust",               MuscleGroup = MuscleGroup.Glutes,     ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Patada de Glúteo en Polea", MuscleGroup = MuscleGroup.Glutes,    ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Abdominales
+                new() { Name = "Crunch Abdominal",         MuscleGroup = MuscleGroup.Abs,        ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Plancha",                  MuscleGroup = MuscleGroup.Abs,        ExerciseType = ExerciseType.Functional,  IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Elevación de Piernas",     MuscleGroup = MuscleGroup.Abs,        ExerciseType = ExerciseType.Strength,    IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Russian Twist",            MuscleGroup = MuscleGroup.Abs,        ExerciseType = ExerciseType.Functional,  IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Cardio
+                new() { Name = "Cinta / Trotadora",        MuscleGroup = MuscleGroup.Cardio,     ExerciseType = ExerciseType.Cardio,      IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Bicicleta Fija",           MuscleGroup = MuscleGroup.Cardio,     ExerciseType = ExerciseType.Cardio,      IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Elíptica",                 MuscleGroup = MuscleGroup.Cardio,     ExerciseType = ExerciseType.Cardio,      IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Remo Ergómetro",           MuscleGroup = MuscleGroup.Cardio,     ExerciseType = ExerciseType.Cardio,      IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Salto a la Soga",          MuscleGroup = MuscleGroup.Cardio,     ExerciseType = ExerciseType.Cardio,      IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                // Cuerpo Completo / Funcional
+                new() { Name = "Burpees",                  MuscleGroup = MuscleGroup.FullBody,   ExerciseType = ExerciseType.Functional,  IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Sentadilla con Salto",     MuscleGroup = MuscleGroup.FullBody,   ExerciseType = ExerciseType.Functional,  IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+                new() { Name = "Flexiones de Brazos",      MuscleGroup = MuscleGroup.FullBody,   ExerciseType = ExerciseType.Functional,  IsCustom = false, IsActive = true, CreatedAt = DateTime.UtcNow },
+            };
+            db.Exercises.AddRange(exercises);
+            await db.SaveChangesAsync();
+        }
     }
 
     // ── Incremental menu seed ─────────────────────────────────────────────────
@@ -145,11 +241,25 @@ public static class DbInitializer
             (11, "Caja Diaria",        "fas fa-cash-register",        null, "CashRegister", "Index",           5,    6),
             (16, "Clases",             "fas fa-chalkboard-teacher",   "#",  null,           null,              null, 4),
             (17, "Agenda Semanal",     "fas fa-calendar-week",        null, "Classes",      "Calendar",        16,   1),
-            (18, "Gestión de Clases",  "fas fa-list-alt",             null, "Classes",      "Index",           16,   2),
+            (18, "Gestión de Clases",  "fas fa-list-alt",             null, "Classes",         "Index",   16,   2),
+            (24, "Categorías",        "fas fa-tags",                 null, "ClassCategories", "Index",   16,   3),
+            (26, "Rutinas",            "fas fa-clipboard-list",       "#",  null,           null,              null, 5),
+            (27, "Ejercicios",         "fas fa-dumbbell",             null, "Exercises",    "Index",           26,   1),
+            (28, "Gestión de Rutinas", "fas fa-list-alt",             null, "Routines",     "Index",           26,   2),
+            (29, "Asignaciones",       "fas fa-user-check",           null, "MemberRoutines",  "Index",         26,   3),
+            (30, "Nutrición",         "fas fa-leaf",                 "#",  null,            null,              null, 6),
+            (31, "Planes",            "fas fa-clipboard-list",       null, "NutritionPlans","Index",           30,   1),
+            (32, "Asignaciones",      "fas fa-user-check",           null, "MemberNutrition","Index",          30,   2),
+            (19, "Reportes",           "fas fa-chart-bar",            "#",  null,           null,              null, 7),
+            (20, "Ingresos",           "fas fa-dollar-sign",          null, "Reports",      "Revenue",         19,   1),
+            (21, "Socios Activos",     "fas fa-users",                null, "Reports",      "ActiveMembers",   19,   2),
+            (22, "Deudores",           "fas fa-exclamation-circle",   null, "Reports",      "Debtors",         19,   3),
+            (23, "Informe de Caja",    "fas fa-cash-register",        null, "Reports",      "Cash",            19,   4),
             (12, "Administración",     "fas fa-cog",                  "#",  null,           null,              null, 10),
             (13, "Roles",              "fas fa-shield-alt",           null, "Roles",        "Index",           12,   1),
             (14, "Usuarios",           "fas fa-user-cog",             null, "Users",        "Index",           12,   2),
-            (15, "Permisos Menú",      "fas fa-bars",                 null, "Roles",        "MenuPermissions", 12,   3)
+            (15, "Permisos Menú",      "fas fa-bars",                 null, "Roles",        "MenuPermissions", 12,   3),
+            (25, "Empresa",           "fas fa-building",             null, "Company",      "Settings",        12,   4)
         };
 
         var adminRole  = await db.Roles.FirstOrDefaultAsync(r => r.Name == "Administrador");
@@ -210,11 +320,11 @@ public static class DbInitializer
                 AddPermIfMissing(adminRole.Id, id);
 
         if (recepRole != null)
-            foreach (var id in new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18 })
+            foreach (var id in new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 17, 18, 24, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30, 31, 32 })
                 AddPermIfMissing(recepRole.Id, id);
 
         if (instrRole != null)
-            foreach (var id in new[] { 1, 2, 3, 16, 17 })
+            foreach (var id in new[] { 1, 2, 3, 16, 17, 26, 27, 28, 29, 30, 31, 32 })
                 AddPermIfMissing(instrRole.Id, id);
 
         await db.SaveChangesAsync();

@@ -1,0 +1,370 @@
+@model FitManager.ViewModels.RoutineEditViewModel
+@using FitManager.Models
+@* Partial compartido por Create y Edit *@
+
+<div class="row g-4">
+    <!-- ── Columna izquierda: Info básica ────────────────────────────── -->
+    <div class="col-lg-4">
+        <div class="card fm-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2 text-accent"></i>Información General</h5>
+            </div>
+            <div class="card-body">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input asp-for="Name" class="form-control" placeholder="Ej. Volumen, Bajar Peso..." required />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Goal" class="form-label">Objetivo</label>
+                    <select asp-for="Goal" class="form-select">
+                        <option value="1">Ganar Masa Muscular</option>
+                        <option value="2">Bajar de Peso</option>
+                        <option value="3">Definición</option>
+                        <option value="4">Fuerza</option>
+                        <option value="5">Resistencia</option>
+                        <option value="6">Rehabilitación</option>
+                        <option value="7">Mantenimiento</option>
+                        <option value="8">Flexibilidad</option>
+                        <option value="99">Otro</option>
+                    </select>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label asp-for="DurationWeeks" class="form-label">Duración (sem.)</label>
+                        <input asp-for="DurationWeeks" class="form-control" type="number" min="1" max="52" />
+                        <span asp-validation-for="DurationWeeks" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6">
+                        <label asp-for="FrequencyPerWeek" class="form-label">Días / semana</label>
+                        <input asp-for="FrequencyPerWeek" class="form-control" type="number" min="1" max="7" />
+                        <span asp-validation-for="FrequencyPerWeek" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Tipo de Rutina</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="IsGeneral" id="typeGeneral"
+                                   value="true" @(Model.IsGeneral ? "checked" : "") />
+                            <label class="form-check-label" for="typeGeneral">
+                                <i class="fas fa-users me-1 text-primary"></i>General
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="IsGeneral" id="typePersonal"
+                                   value="false" @(!Model.IsGeneral ? "checked" : "") />
+                            <label class="form-check-label" for="typePersonal">
+                                <i class="fas fa-user me-1 text-warning"></i>Personalizada
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-text">General: plantilla reutilizable. Personalizada: para un socio específico.</div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label">Descripción / Observaciones</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"
+                              placeholder="Notas generales de la rutina..."></textarea>
+                </div>
+
+                <div class="mb-3 form-check form-switch">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" />
+                    <label asp-for="IsActive" class="form-check-label">Activa</label>
+                </div>
+
+                <button type="submit" class="btn btn-accent w-100">
+                    <i class="fas fa-save me-2"></i>Guardar Rutina
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Columna derecha: Días ─────────────────────────────────────── -->
+    <div class="col-lg-8">
+        <div class="card fm-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="card-title mb-0"><i class="fas fa-calendar-week me-2 text-accent"></i>Organización por Días</h5>
+                <button type="button" class="btn btn-sm btn-outline-accent" id="btnAddDay">
+                    <i class="fas fa-plus me-1"></i>Agregar Día
+                </button>
+            </div>
+            <div class="card-body" id="daysContainer">
+
+                @for (int di = 0; di < Model.Days.Count; di++)
+                {
+                    var day = Model.Days[di];
+                    <div class="day-card mb-3 rounded" style="border:1px solid rgba(255,255,255,.12);">
+                        <!-- Day header -->
+                        <div class="d-flex align-items-center gap-2 p-3" style="background:rgba(255,255,255,.05);border-radius:6px 6px 0 0;">
+                            <span class="day-number-badge badge bg-accent flex-shrink-0">Día @(di+1)</span>
+                            <input type="text" name="Days[@di].Name" value="@day.Name"
+                                   class="form-control form-control-sm flex-grow-1"
+                                   placeholder="Ej: Pecho / Tríceps" />
+                            <input type="hidden" name="Days[@di].DayNumber" value="@(di+1)" />
+                            <div class="form-check form-switch mb-0 ms-1 flex-shrink-0">
+                                <input type="checkbox" name="Days[@di].IsRestDay" value="true"
+                                       class="form-check-input rest-toggle" role="switch"
+                                       id="rest_@di" @(day.IsRestDay ? "checked" : "") />
+                                <label class="form-check-label text-muted small" for="rest_@di">Descanso</label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-remove-day flex-shrink-0"
+                                    title="Eliminar día"><i class="fas fa-times"></i></button>
+                        </div>
+                        <!-- Day body -->
+                        <div class="day-body p-3 @(day.IsRestDay ? "d-none" : "")">
+                            <div class="table-responsive">
+                                <table class="table table-sm fm-table exercises-table mb-2">
+                                    <thead>
+                                        <tr>
+                                            <th>Ejercicio</th>
+                                            <th width="55" class="text-center">Series</th>
+                                            <th width="80" class="text-center">Reps</th>
+                                            <th width="80" class="text-center">Peso (kg)</th>
+                                            <th width="85" class="text-center">Desc. (seg)</th>
+                                            <th>Notas</th>
+                                            <th width="36"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="exercises-tbody">
+                                        @for (int ei = 0; ei < day.Exercises.Count; ei++)
+                                        {
+                                            var ex = day.Exercises[ei];
+                                            <tr class="exercise-row">
+                                                <td>
+                                                    <select name="Days[@di].Exercises[@ei].ExerciseId" class="form-select form-select-sm exercise-select">
+                                                        <option value="">— Seleccioná —</option>
+                                                        @foreach (var opt in Model.ExerciseOptions)
+                                                        {
+                                                            <option value="@opt.Id" selected="@(opt.Id == ex.ExerciseId)">@opt.Name</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td><input type="number" name="Days[@di].Exercises[@ei].Sets" value="@ex.Sets" class="form-control form-control-sm text-center" min="1" max="20" /></td>
+                                                <td><input type="text" name="Days[@di].Exercises[@ei].Reps" value="@ex.Reps" class="form-control form-control-sm text-center" placeholder="10" /></td>
+                                                <td><input type="number" name="Days[@di].Exercises[@ei].Weight" value="@ex.Weight" class="form-control form-control-sm text-center" step="0.5" placeholder="—" /></td>
+                                                <td><input type="number" name="Days[@di].Exercises[@ei].RestSeconds" value="@ex.RestSeconds" class="form-control form-control-sm text-center" placeholder="60" /></td>
+                                                <td><input type="text" name="Days[@di].Exercises[@ei].Notes" value="@ex.Notes" class="form-control form-control-sm" /></td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-remove-exercise">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-accent btn-add-exercise">
+                                <i class="fas fa-plus me-1"></i>Agregar Ejercicio
+                            </button>
+                        </div>
+                        <div class="rest-day-msg p-3 text-center text-muted @(!day.IsRestDay ? "d-none" : "")">
+                            <i class="fas fa-bed fa-2x mb-2 d-block opacity-40"></i>
+                            <span>Día de descanso</span>
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+            <div id="noDaysMsg" class="text-center text-muted py-4 @(Model.Days.Any() ? "d-none" : "")">
+                <i class="fas fa-calendar-times fa-2x mb-2 d-block opacity-40"></i>
+                Sin días configurados. Hacé clic en <strong>Agregar Día</strong>.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Templates ───────────────────────────────────────────────────── -->
+<script type="text/x-template" id="tpl-day">
+<div class="day-card mb-3 rounded" style="border:1px solid rgba(255,255,255,.12);">
+  <div class="d-flex align-items-center gap-2 p-3" style="background:rgba(255,255,255,.05);border-radius:6px 6px 0 0;">
+    <span class="day-number-badge badge bg-accent flex-shrink-0">Día {{NUM}}</span>
+    <input type="text" name="Days[{{IDX}}].Name" class="form-control form-control-sm flex-grow-1" placeholder="Ej: Espalda / Bíceps" />
+    <input type="hidden" name="Days[{{IDX}}].DayNumber" value="{{NUM}}" />
+    <div class="form-check form-switch mb-0 ms-1 flex-shrink-0">
+      <input type="checkbox" name="Days[{{IDX}}].IsRestDay" value="true" class="form-check-input rest-toggle" role="switch" id="rest_{{IDX}}" />
+      <label class="form-check-label text-muted small" for="rest_{{IDX}}">Descanso</label>
+    </div>
+    <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-remove-day flex-shrink-0"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="day-body p-3">
+    <div class="table-responsive">
+      <table class="table table-sm fm-table exercises-table mb-2">
+        <thead><tr>
+          <th>Ejercicio</th>
+          <th width="55" class="text-center">Series</th>
+          <th width="80" class="text-center">Reps</th>
+          <th width="80" class="text-center">Peso (kg)</th>
+          <th width="85" class="text-center">Desc. (seg)</th>
+          <th>Notas</th>
+          <th width="36"></th>
+        </tr></thead>
+        <tbody class="exercises-tbody"></tbody>
+      </table>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-accent btn-add-exercise">
+      <i class="fas fa-plus me-1"></i>Agregar Ejercicio
+    </button>
+  </div>
+  <div class="rest-day-msg p-3 text-center text-muted d-none">
+    <i class="fas fa-bed fa-2x mb-2 d-block opacity-40"></i><span>Día de descanso</span>
+  </div>
+</div>
+</script>
+
+<script type="text/x-template" id="tpl-exercise">
+<tr class="exercise-row">
+  <td>
+    <select name="Days[{{DIDX}}].Exercises[{{EIDX}}].ExerciseId" class="form-select form-select-sm exercise-select">
+      <option value="">— Seleccioná —</option>
+      {{OPTIONS}}
+    </select>
+  </td>
+  <td><input type="number" name="Days[{{DIDX}}].Exercises[{{EIDX}}].Sets" value="3" class="form-control form-control-sm text-center" min="1" max="20" /></td>
+  <td><input type="text" name="Days[{{DIDX}}].Exercises[{{EIDX}}].Reps" value="10" class="form-control form-control-sm text-center" /></td>
+  <td><input type="number" name="Days[{{DIDX}}].Exercises[{{EIDX}}].Weight" class="form-control form-control-sm text-center" step="0.5" placeholder="—" /></td>
+  <td><input type="number" name="Days[{{DIDX}}].Exercises[{{EIDX}}].RestSeconds" class="form-control form-control-sm text-center" placeholder="60" /></td>
+  <td><input type="text" name="Days[{{DIDX}}].Exercises[{{EIDX}}].Notes" class="form-control form-control-sm" /></td>
+  <td><button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-remove-exercise"><i class="fas fa-times"></i></button></td>
+</tr>
+</script>
+
+<script>
+(function () {
+    // ── Datos de ejercicios para los selects ───────────────────────────────
+    const exercises = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        Model.ExerciseOptions,
+        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+    ));
+
+    function buildOptions(selectedId) {
+        let html = '<option value="">— Seleccioná —</option>';
+        // Agrupar por músculo
+        const groups = {};
+        exercises.forEach(e => {
+            if (!groups[e.muscleGroup]) groups[e.muscleGroup] = [];
+            groups[e.muscleGroup].push(e);
+        });
+        Object.keys(groups).sort().forEach(mg => {
+            html += `<optgroup label="${mg}">`;
+            groups[mg].forEach(e => {
+                html += `<option value="${e.id}" ${e.id === selectedId ? 'selected' : ''}>${e.name}</option>`;
+            });
+            html += '</optgroup>';
+        });
+        return html;
+    }
+
+    // ── Re-indexar todos los días y ejercicios ─────────────────────────────
+    function reindexAll() {
+        const days = document.querySelectorAll('#daysContainer .day-card');
+        days.forEach((dayEl, di) => {
+            // Badge y número de día
+            const badge = dayEl.querySelector('.day-number-badge');
+            if (badge) badge.textContent = `Día ${di + 1}`;
+
+            // Campos del día
+            dayEl.querySelectorAll('[name]').forEach(inp => {
+                inp.name = inp.name.replace(/Days\[\d+\]/, `Days[${di}]`);
+            });
+            dayEl.querySelectorAll('[id]').forEach(el => {
+                el.id = el.id.replace(/rest_\d+/, `rest_${di}`);
+            });
+            dayEl.querySelectorAll('[for]').forEach(el => {
+                el.htmlFor = el.htmlFor.replace(/rest_\d+/, `rest_${di}`);
+            });
+
+            // Re-indexar ejercicios dentro del día
+            const exRows = dayEl.querySelectorAll('.exercise-row');
+            exRows.forEach((row, ei) => {
+                row.querySelectorAll('[name]').forEach(inp => {
+                    inp.name = inp.name
+                        .replace(/Days\[\d+\]/, `Days[${di}]`)
+                        .replace(/Exercises\[\d+\]/, `Exercises[${ei}]`);
+                });
+            });
+        });
+
+        // Ocultar/mostrar mensaje vacío
+        document.getElementById('noDaysMsg').classList.toggle('d-none', days.length > 0);
+    }
+
+    // ── Agregar día ────────────────────────────────────────────────────────
+    document.getElementById('btnAddDay').addEventListener('click', () => {
+        const count  = document.querySelectorAll('#daysContainer .day-card').length;
+        const tpl    = document.getElementById('tpl-day').innerHTML;
+        const html   = tpl
+            .replaceAll('{{IDX}}', count)
+            .replaceAll('{{NUM}}', count + 1);
+        const wrap = document.createElement('div');
+        wrap.innerHTML = html;
+        document.getElementById('daysContainer').appendChild(wrap.firstElementChild);
+        reindexAll();
+        bindDayEvents(document.querySelectorAll('#daysContainer .day-card')[count]);
+    });
+
+    // ── Agregar ejercicio ──────────────────────────────────────────────────
+    function addExercise(dayEl) {
+        const di   = [...document.querySelectorAll('#daysContainer .day-card')].indexOf(dayEl);
+        const tbody= dayEl.querySelector('.exercises-tbody');
+        const ei   = tbody.querySelectorAll('.exercise-row').length;
+        const tpl  = document.getElementById('tpl-exercise').innerHTML;
+        const opts = buildOptions(0);
+        const html = tpl
+            .replaceAll('{{DIDX}}', di)
+            .replaceAll('{{EIDX}}', ei)
+            .replace('{{OPTIONS}}', opts);
+        const wrap = document.createElement('tbody');
+        wrap.innerHTML = html;
+        const row  = wrap.firstElementChild;
+        tbody.appendChild(row);
+        bindExerciseRemove(row);
+    }
+
+    // ── Bind eventos de un día recién creado ───────────────────────────────
+    function bindDayEvents(dayEl) {
+        dayEl.querySelector('.btn-remove-day')?.addEventListener('click', () => {
+            dayEl.remove();
+            reindexAll();
+        });
+        dayEl.querySelector('.btn-add-exercise')?.addEventListener('click', () => {
+            addExercise(dayEl);
+        });
+        dayEl.querySelector('.rest-toggle')?.addEventListener('change', function () {
+            const body = dayEl.querySelector('.day-body');
+            const msg  = dayEl.querySelector('.rest-day-msg');
+            body.classList.toggle('d-none', this.checked);
+            msg.classList.toggle('d-none', !this.checked);
+        });
+    }
+
+    function bindExerciseRemove(row) {
+        row.querySelector('.btn-remove-exercise')?.addEventListener('click', () => {
+            const dayEl = row.closest('.day-card');
+            row.remove();
+            reindexAll();
+        });
+    }
+
+    // ── Bind días y ejercicios existentes (cargados del modelo) ───────────
+    document.querySelectorAll('#daysContainer .day-card').forEach(dayEl => {
+        bindDayEvents(dayEl);
+        dayEl.querySelectorAll('.exercise-row').forEach(row => bindExerciseRemove(row));
+
+        // Actualizar opciones del select con optgroups
+        dayEl.querySelectorAll('.exercise-select').forEach(sel => {
+            const current = parseInt(sel.value) || 0;
+            sel.innerHTML = buildOptions(current);
+        });
+    });
+
+    reindexAll();
+})();
+</script>

@@ -1,0 +1,228 @@
+@model FitManager.ViewModels.PaymentReceiptViewModel
+@using FitManager.Models
+@{
+    Layout = null;
+    var p  = Model.Payment;
+    var m  = Model.Member;
+    var co = Model.Company;
+    var receiptNum = !string.IsNullOrWhiteSpace(p.ReceiptNumber)
+        ? p.ReceiptNumber
+        : $"REC-{p.Id:D6}";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Comprobante de Pago — @receiptNum</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; padding: 0; }
+
+        /* ── Página A4-like ─────────────────────────────────────────────── */
+        .page { max-width: 700px; margin: 0 auto; padding: 28px 32px; }
+
+        /* ── Encabezado empresa ─────────────────────────────────────────── */
+        .company-header { display: flex; align-items: center; gap: 14px; border-bottom: 3px solid #1a1a1a; padding-bottom: 14px; margin-bottom: 18px; }
+        .company-logo   { width: 60px; height: 60px; object-fit: contain; }
+        .company-logo-icon { width: 60px; height: 60px; font-size: 36px; display: flex; align-items: center; justify-content: center; color: #444; }
+        .company-name   { font-size: 20px; font-weight: bold; }
+        .company-slogan { font-size: 11px; color: #666; margin-top: 2px; }
+        .company-contact { font-size: 10px; color: #555; margin-top: 5px; line-height: 1.6; }
+        .receipt-label  { margin-left: auto; text-align: right; flex-shrink: 0; }
+        .receipt-label .title  { font-size: 18px; font-weight: bold; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; }
+        .receipt-label .number { font-size: 13px; color: #555; margin-top: 3px; }
+        .receipt-label .date   { font-size: 10px; color: #888; margin-top: 2px; }
+
+        /* ── Sección datos ──────────────────────────────────────────────── */
+        .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: #888; font-weight: bold; margin-bottom: 6px; margin-top: 16px; }
+        .data-box { background: #f6f6f6; border-radius: 5px; padding: 10px 14px; }
+        .data-row { display: flex; gap: 6px; margin-bottom: 4px; }
+        .data-row:last-child { margin-bottom: 0; }
+        .data-label { color: #888; min-width: 130px; flex-shrink: 0; }
+        .data-value { font-weight: 600; }
+
+        /* ── Tabla del pago ─────────────────────────────────────────────── */
+        .payment-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .payment-table th { background: #2c2c2c; color: #fff; padding: 7px 10px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+        .payment-table td { padding: 8px 10px; border-bottom: 1px solid #eee; }
+        .payment-table tr:last-child td { border-bottom: none; }
+        .amount-row { background: #f0f9f0; }
+        .amount-cell { font-size: 16px; font-weight: bold; color: #1a7a1a; text-align: right; }
+
+        /* ── Estado ─────────────────────────────────────────────────────── */
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .status-paid      { background: #d4edda; color: #155724; }
+        .status-pending   { background: #fff3cd; color: #856404; }
+        .status-overdue   { background: #f8d7da; color: #721c24; }
+        .status-cancelled { background: #e2e3e5; color: #383d41; }
+
+        /* ── Separador ──────────────────────────────────────────────────── */
+        .divider { border: none; border-top: 1px dashed #ccc; margin: 20px 0; }
+
+        /* ── Footer ─────────────────────────────────────────────────────── */
+        .receipt-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; align-items: flex-end; }
+        .receipt-footer .note { font-size: 9px; color: #aaa; max-width: 340px; line-height: 1.5; }
+        .receipt-footer .stamp { text-align: right; font-size: 9px; color: #aaa; }
+        .signature-line { border-top: 1px solid #999; width: 180px; margin-top: 30px; padding-top: 4px; text-align: center; font-size: 9px; color: #666; }
+
+        /* ── Botones (solo pantalla) ────────────────────────────────────── */
+        .no-print { text-align: right; padding: 12px 32px 0; }
+        .no-print button { padding: 7px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-print { background: #333; color: #fff; }
+        .btn-close-win { background: #888; color: #fff; margin-left: 6px; }
+
+        @@media print {
+            .no-print { display: none !important; }
+            body { padding: 0; }
+            .page { padding: 16px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Botones pantalla ─────────────────────────────────────────────── -->
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn-close-win" onclick="window.close()">✕ Cerrar</button>
+</div>
+
+<div class="page">
+
+    <!-- ── Encabezado Empresa ──────────────────────────────────────────── -->
+    <div class="company-header">
+        <div>
+            @if (!string.IsNullOrEmpty(co?.LogoPath))
+            {
+                <img src="/@co.LogoPath" class="company-logo" alt="Logo" />
+            }
+            else
+            {
+                <div class="company-logo-icon">🏋</div>
+            }
+        </div>
+        <div>
+            <div class="company-name">@(co?.Name ?? "FitManager")</div>
+            @if (!string.IsNullOrWhiteSpace(co?.Slogan))
+            {
+                <div class="company-slogan">@co.Slogan</div>
+            }
+            <div class="company-contact">
+                @{
+                    var addr = string.Join(", ", new[] { co?.Address, co?.City, co?.Province }
+                        .Where(s => !string.IsNullOrWhiteSpace(s)));
+                }
+                @if (!string.IsNullOrEmpty(addr)) { <span>📍 @addr</span><br /> }
+                @if (!string.IsNullOrWhiteSpace(co?.Phone)) { <span>📞 @co.Phone</span> }
+                @if (!string.IsNullOrWhiteSpace(co?.Email)) { <span style="margin-left:10px;">✉ @co.Email</span> }
+                @if (!string.IsNullOrWhiteSpace(co?.TaxId)) { <br /><span>CUIT: @co.TaxId</span> }
+            </div>
+        </div>
+        <div class="receipt-label">
+            <div class="title">Comprobante de Pago</div>
+            <div class="number">N° @receiptNum</div>
+            <div class="date">Emitido: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+        </div>
+    </div>
+
+    <!-- ── Datos del Socio ──────────────────────────────────────────────── -->
+    <div class="section-title">Datos del Socio</div>
+    <div class="data-box">
+        <div class="data-row">
+            <span class="data-label">Nombre completo:</span>
+            <span class="data-value">@m.FullName</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">N° de Socio:</span>
+            <span class="data-value">@m.MemberNumber</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(m.DNI))
+        {
+            <div class="data-row">
+                <span class="data-label">DNI / Documento:</span>
+                <span class="data-value">@m.DNI</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(m.Phone))
+        {
+            <div class="data-row">
+                <span class="data-label">Teléfono:</span>
+                <span class="data-value">@m.Phone</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(m.Email))
+        {
+            <div class="data-row">
+                <span class="data-label">Email:</span>
+                <span class="data-value">@m.Email</span>
+            </div>
+        }
+    </div>
+
+    <!-- ── Detalle del Pago ─────────────────────────────────────────────── -->
+    <div class="section-title">Detalle del Pago</div>
+    <table class="payment-table">
+        <thead>
+            <tr>
+                <th style="width:35%;">Concepto</th>
+                <th style="width:20%;">Método</th>
+                <th style="width:20%;">Fecha Pago</th>
+                <th style="width:25%;">Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <strong>@(p.Description ?? (p.Plan != null ? p.Plan.Name : "Cuota mensual"))</strong>
+                    @if (p.Plan != null)
+                    {
+                        <br /><small style="color:#888;">Plan: @p.Plan.Name</small>
+                    }
+                </td>
+                <td>@Model.MethodLabel</td>
+                <td>@p.PaymentDate.ToString("dd/MM/yyyy")</td>
+                <td>
+                    @{
+                        var statusClass = p.Status switch
+                        {
+                            PaymentStatus.Paid      => "status-paid",
+                            PaymentStatus.Pending   => "status-pending",
+                            PaymentStatus.Overdue   => "status-overdue",
+                            _                       => "status-cancelled"
+                        };
+                    }
+                    <span class="status-badge @statusClass">@Model.StatusLabel</span>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" style="color:#888; font-size:10px;">
+                    Fecha de vencimiento de la cuota:
+                    <strong style="color:#1a1a1a;">@p.DueDate.ToString("dd/MM/yyyy")</strong>
+                </td>
+                <td colspan="2" class="amount-cell">
+                    $ @p.Amount.ToString("N2")
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    @if (!string.IsNullOrWhiteSpace(p.Notes))
+    {
+        <hr class="divider" />
+        <div class="section-title">Observaciones</div>
+        <p style="font-size:10px; color:#555;">@p.Notes</p>
+    }
+
+    <!-- ── Footer ──────────────────────────────────────────────────────── -->
+    <div class="receipt-footer">
+        <div class="note">
+            Este comprobante es válido como constancia de pago no fiscal.<br />
+            Para consultas: @(co?.Phone ?? "") @(!string.IsNullOrWhiteSpace(co?.Email) ? "— " + co.Email : "")
+        </div>
+        <div class="stamp">
+            <div class="signature-line">Firma y sello</div>
+        </div>
+    </div>
+
+</div><!-- /page -->
+</body>
+</html>

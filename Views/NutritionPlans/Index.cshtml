@@ -1,0 +1,137 @@
+@model List<FitManager.ViewModels.NutritionPlanListViewModel>
+@{
+    ViewData["Title"] = "Planes de Nutrición";
+    ViewData["BreadcrumbParent"] = "Nutrición";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-leaf me-2 text-accent"></i>Planes de Nutrición</h1>
+        <p class="text-muted mb-0">@Model.Count plan(es) registrados</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-accent"><i class="fas fa-plus me-1"></i>Nuevo Plan</a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="nutritionTable" class="table table-hover fm-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Objetivo</th>
+                        <th class="text-center">Duración</th>
+                        <th class="text-center">Comidas</th>
+                        <th class="text-center">Tipo</th>
+                        <th class="text-center">Asignados</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@p.Name</td>
+                            <td><span class="badge bg-dark border border-secondary">@p.GoalLabel</span></td>
+                            <td class="text-center">@p.DurationLabel</td>
+                            <td class="text-center">
+                                <span class="badge @(p.MealCount > 0 ? "bg-info" : "bg-dark border border-secondary")">@p.MealCount</span>
+                            </td>
+                            <td class="text-center">
+                                @if (p.IsTemplate)
+                                {
+                                    <span class="badge bg-primary"><i class="fas fa-clone me-1"></i>Plantilla</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-user me-1"></i>Personalizado</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(p.AssignedCount > 0 ? "bg-success" : "bg-dark border border-secondary")">@p.AssignedCount</span>
+                            </td>
+                            <td class="text-center">
+                                @if (p.IsActive)
+                                {
+                                    <span class="badge badge-status bg-success"><i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-status bg-secondary"><i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Inactivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a asp-action="Detail" asp-route-id="@p.Id"
+                                       class="btn btn-sm btn-icon btn-outline-info" title="Ver detalle">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@p.Id"
+                                       class="btn btn-sm btn-icon btn-outline-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-controller="MemberNutrition" asp-action="Assign"
+                                       class="btn btn-sm btn-icon btn-outline-success" title="Asignar a socio">
+                                        <i class="fas fa-user-plus"></i>
+                                    </a>
+                                    <form asp-action="ToggleActive" asp-route-id="@p.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="btn btn-sm btn-icon @(p.IsActive ? "btn-outline-secondary" : "btn-outline-success")"
+                                                title="@(p.IsActive ? "Desactivar" : "Activar")">
+                                            <i class="fas @(p.IsActive ? "fa-toggle-off" : "fa-toggle-on")"></i>
+                                        </button>
+                                    </form>
+                                    @if (p.AssignedCount == 0)
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@p.Id" method="post" class="d-inline delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-delete"
+                                                    data-name="@p.Name">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    $('#nutritionTable').DataTable({
+        language: dtSpanish, pageLength: 25, order: [[0, 'asc']],
+        columnDefs: [{ orderable: false, targets: [7] }]
+    });
+    $(document).on('click', '.btn-delete', function () {
+        const form = $(this).closest('.delete-form');
+        const name = $(this).data('name');
+        Swal.fire({
+            title: '¿Eliminar plan?',
+            html: `¿Eliminás el plan <strong>${name}</strong>?`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash me-1"></i>Sí, eliminar',
+            cancelButtonText: 'Cancelar', background: '#1a1d27', color: '#e0e0e0'
+        }).then(r => { if (r.isConfirmed) form.submit(); });
+    });
+});
+</script>
+}

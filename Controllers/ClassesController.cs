@@ -40,9 +40,10 @@ public class ClassesController : Controller
 
     // ── GET /Classes/Create ───────────────────────────────────────────────────
     [Authorize(Roles = "Administrador,Recepcionista")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
         var vm = new FitnessClassViewModel { StartDate = DateTime.Today };
+        vm.Categories = await GetCategorySelectListAsync();
         return View(vm);
     }
 
@@ -59,7 +60,11 @@ public class ClassesController : Controller
                      || s.SpecificDate.HasValue)
             .ToList();
 
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid)
+        {
+            vm.Categories = await GetCategorySelectListAsync();
+            return View(vm);
+        }
 
         var fc = await _classService.CreateAsync(vm, User.Identity!.Name!);
         TempData["Success"] = $"Clase «{fc.Name}» creada exitosamente.";
@@ -75,23 +80,24 @@ public class ClassesController : Controller
 
         var vm = new FitnessClassViewModel
         {
-            Id             = fc.Id,
-            Name           = fc.Name,
-            Description    = fc.Description,
-            Category       = fc.Category,
-            InstructorName = fc.InstructorName,
-            Location       = fc.Location,
-            Color          = fc.Color,
-            StartDate      = fc.StartDate,
-            EndDate        = fc.EndDate,
-            MaxCapacity    = fc.MaxCapacity,
-            IsActive       = fc.IsActive,
-            Schedules      = fc.Schedules.Select(ClassScheduleViewModel.FromModel).ToList()
+            Id              = fc.Id,
+            Name            = fc.Name,
+            Description     = fc.Description,
+            ClassCategoryId = fc.ClassCategoryId,
+            InstructorName  = fc.InstructorName,
+            Location        = fc.Location,
+            Color           = fc.Color,
+            StartDate       = fc.StartDate,
+            EndDate         = fc.EndDate,
+            MaxCapacity     = fc.MaxCapacity,
+            IsActive        = fc.IsActive,
+            Schedules       = fc.Schedules.Select(ClassScheduleViewModel.FromModel).ToList()
         };
 
         if (!vm.Schedules.Any())
             vm.Schedules.Add(new ClassScheduleViewModel());
 
+        vm.Categories = await GetCategorySelectListAsync();
         return View(vm);
     }
 
@@ -109,7 +115,11 @@ public class ClassesController : Controller
                      || s.SpecificDate.HasValue)
             .ToList();
 
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid)
+        {
+            vm.Categories = await GetCategorySelectListAsync();
+            return View(vm);
+        }
 
         var result = await _classService.UpdateAsync(vm);
         if (result == null) return NotFound();
@@ -171,7 +181,16 @@ public class ClassesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // ── Helper ────────────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    private async Task<List<SelectListItem>> GetCategorySelectListAsync()
+    {
+        var cats = await _classService.GetAllCategoriesAsync();
+        return cats
+            .Where(c => c.IsActive)
+            .Select(c => new SelectListItem { Value = c.Id.ToString(), Text = c.Name })
+            .ToList();
+    }
+
     private async Task<List<SelectListItem>> GetMemberSelectListAsync()
     {
         var members = await _memberService.GetAllAsync();

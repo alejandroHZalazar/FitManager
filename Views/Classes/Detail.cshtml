@@ -4,19 +4,6 @@
 @{
     ViewData["Title"] = Model.Class.Name;
     ViewData["BreadcrumbParent"] = "Clases";
-
-    string CategoryLabel(string cat) => cat switch {
-        "Spinning"    => "Spinning",
-        "Yoga"        => "Yoga",
-        "Pilates"     => "Pilates",
-        "Zumba"       => "Zumba",
-        "CrossFit"    => "CrossFit",
-        "Functional"  => "Funcional",
-        "Kickboxing"  => "Kickboxing",
-        "Natacion"    => "Natación",
-        "Musculacion" => "Musculación",
-        _             => "Otro"
-    };
 }
 
 <div class="page-header">
@@ -24,9 +11,12 @@
         <span class="rounded-circle flex-shrink-0"
               style="width:18px;height:18px;background-color:@Model.Class.Color;display:inline-block;"></span>
         <h1 class="page-title mb-0">@Model.Class.Name</h1>
-        <span class="badge" style="background-color:@Model.Class.Color;color:#fff;font-size:.8rem;">
-            @CategoryLabel(Model.Class.Category.ToString())
-        </span>
+        @if (Model.Class.Category != null)
+        {
+            <span class="badge" style="background-color:@Model.Class.Category.Color;color:#fff;font-size:.8rem;">
+                <i class="fas @Model.Class.Category.Icon me-1"></i>@Model.Class.Category.Name
+            </span>
+        }
         @if (Model.Class.IsActive)
         {
             <span class="badge badge-status bg-success">
@@ -196,8 +186,9 @@
                 <h5 class="card-title mb-0"><i class="fas fa-user-plus me-2 text-accent"></i>Inscribir Socio</h5>
             </div>
             <div class="card-body">
-                <form asp-action="Enroll" asp-controller="Classes" asp-route-id="@Model.Class.Id" method="post" id="enrollForm">
+                <form asp-action="Enroll" asp-controller="Classes" method="post" id="enrollForm">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="FitnessClassId" value="@Model.Class.Id" />
 
                     <!-- Member AJAX search -->
                     <div class="mb-3">

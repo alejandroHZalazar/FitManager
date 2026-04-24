@@ -13,13 +13,16 @@ namespace FitManager.Controllers;
 public class PaymentsController : Controller
 {
     private readonly IPaymentService _paymentService;
-    private readonly IPlanService _planService;
+    private readonly IPlanService    _planService;
+    private readonly ICompanyService _companyService;
     private readonly ApplicationDbContext _db;
 
-    public PaymentsController(IPaymentService paymentService, IPlanService planService, ApplicationDbContext db)
+    public PaymentsController(IPaymentService paymentService, IPlanService planService,
+                               ICompanyService companyService, ApplicationDbContext db)
     {
         _paymentService = paymentService;
         _planService    = planService;
+        _companyService = companyService;
         _db             = db;
     }
 
@@ -87,9 +90,25 @@ public class PaymentsController : Controller
             ReceiptNumber = vm.ReceiptNumber
         };
 
-        await _paymentService.CreateAsync(pvm, User.Identity?.Name ?? "system");
-        TempData["Success"] = "Pago registrado exitosamente.";
+        var payment = await _paymentService.CreateAsync(pvm, User.Identity?.Name ?? "system");
+        TempData["Success"]        = "Pago registrado exitosamente.";
+        TempData["NewPaymentId"]   = payment.Id;
         return RedirectToAction(nameof(Index));
+    }
+
+    // GET: /Payments/Receipt/5
+    public async Task<IActionResult> Receipt(int id)
+    {
+        var payment = await _paymentService.GetByIdAsync(id);
+        if (payment == null) return NotFound();
+
+        var vm = new PaymentReceiptViewModel
+        {
+            Company = await _companyService.GetAsync(),
+            Member  = payment.Member,
+            Payment = payment
+        };
+        return View(vm);
     }
 
     // POST: /Payments/Delete/5

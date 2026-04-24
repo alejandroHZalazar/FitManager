@@ -1,0 +1,127 @@
+@model List<FitManager.ViewModels.MemberRoutineListViewModel>
+@{
+    ViewData["Title"] = "Asignaciones de Rutinas";
+    ViewData["BreadcrumbParent"] = "Rutinas";
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-user-check me-2 text-accent"></i>Asignaciones de Rutinas</h1>
+        <p class="text-muted mb-0">@Model.Count asignación(es) registradas</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Assign" class="btn btn-accent">
+            <i class="fas fa-user-plus me-1"></i>Nueva Asignación
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="assignmentsTable" class="table table-hover fm-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Socio</th>
+                        <th>N° Socio</th>
+                        <th>Rutina</th>
+                        <th>Objetivo</th>
+                        <th class="text-center">Inicio</th>
+                        <th class="text-center">Fin</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@a.MemberName</td>
+                            <td><span class="badge bg-dark border border-secondary">@a.MemberNumber</span></td>
+                            <td>
+                                <a asp-controller="Routines" asp-action="Detail" asp-route-id="@a.RoutineId"
+                                   class="text-accent text-decoration-none">@a.RoutineName</a>
+                            </td>
+                            <td><span class="badge bg-dark border border-secondary">@a.GoalLabel</span></td>
+                            <td class="text-center">@a.StartDate.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center text-muted">
+                                @(a.EndDate.HasValue ? a.EndDate.Value.ToString("dd/MM/yyyy") : "—")
+                            </td>
+                            <td class="text-center">
+                                @if (a.IsActive)
+                                {
+                                    <span class="badge badge-status bg-success">
+                                        <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Activa
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-status bg-secondary">
+                                        <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Finalizada
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a asp-action="History" asp-route-memberId="@a.MemberId"
+                                       class="btn btn-sm btn-icon btn-outline-info" title="Historial del socio">
+                                        <i class="fas fa-history"></i>
+                                    </a>
+                                    <a asp-action="Print" asp-route-id="@a.Id"
+                                       class="btn btn-sm btn-icon btn-outline-secondary" title="Imprimir rutina"
+                                       target="_blank">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                    @if (a.IsActive)
+                                    {
+                                        <form asp-action="Deactivate" method="post" class="d-inline deactivate-form"
+                                              data-name="@a.MemberName">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@a.Id" />
+                                            <input type="hidden" name="memberId" value="@a.MemberId" />
+                                            <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-deactivate"
+                                                    title="Finalizar asignación">
+                                                <i class="fas fa-stop-circle"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    $('#assignmentsTable').DataTable({
+        language: dtSpanish, pageLength: 25, order: [[4, 'desc']],
+        columnDefs: [{ orderable: false, targets: [7] }]
+    });
+    $(document).on('click', '.btn-deactivate', function () {
+        const form = $(this).closest('.deactivate-form');
+        const name = form.data('name');
+        Swal.fire({
+            title: '¿Finalizar asignación?',
+            html: `Se finalizará la rutina activa de <strong>${name}</strong>.`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-stop-circle me-1"></i>Sí, finalizar',
+            cancelButtonText: 'Cancelar', background: '#1a1d27', color: '#e0e0e0'
+        }).then(r => { if (r.isConfirmed) form.submit(); });
+    });
+});
+</script>
+}

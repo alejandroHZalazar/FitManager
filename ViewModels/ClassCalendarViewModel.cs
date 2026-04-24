@@ -1,5 +1,3 @@
-using FitManager.Models;
-
 namespace FitManager.ViewModels;
 
 public class ClassCalendarViewModel
@@ -29,7 +27,8 @@ public class CalendarSlotViewModel
 {
     public int    ClassId        { get; set; }
     public string ClassName      { get; set; } = string.Empty;
-    public ClassCategory Category { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public string CategoryColor { get; set; } = "#6c757d";
     public string InstructorName { get; set; } = string.Empty;
     public string? Location      { get; set; }
     public TimeSpan StartTime    { get; set; }

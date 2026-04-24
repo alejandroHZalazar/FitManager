@@ -46,21 +46,16 @@
 
                     <!-- Category -->
                     <div class="mb-3">
-                        <label asp-for="Category" class="form-label">Categoría <span class="text-danger">*</span></label>
-                        <select asp-for="Category" class="form-select">
-                            <option value="">— Seleccioná una categoría —</option>
-                            <option value="Spinning">Spinning</option>
-                            <option value="Yoga">Yoga</option>
-                            <option value="Pilates">Pilates</option>
-                            <option value="Zumba">Zumba</option>
-                            <option value="CrossFit">CrossFit</option>
-                            <option value="Functional">Funcional</option>
-                            <option value="Kickboxing">Kickboxing</option>
-                            <option value="Natacion">Natación</option>
-                            <option value="Musculacion">Musculación</option>
-                            <option value="Other">Otro</option>
+                        <label asp-for="ClassCategoryId" class="form-label">Categoría</label>
+                        <select asp-for="ClassCategoryId" asp-items="Model.Categories" class="form-select">
+                            <option value="">— Sin categoría —</option>
                         </select>
-                        <span asp-validation-for="Category" class="text-danger small"></span>
+                        <span asp-validation-for="ClassCategoryId" class="text-danger small"></span>
+                        <div class="form-text">
+                            <a asp-controller="ClassCategories" asp-action="Index" target="_blank">
+                                <i class="fas fa-tags me-1"></i>Gestionar categorías
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Instructor -->
@@ -220,89 +215,70 @@
     </div>
 </form>
 
-<!-- Schedule row template (hidden, cloned by JS) -->
-<template id="scheduleRowTemplate">
-    <div class="schedule-row border border-secondary rounded p-3 mb-3" data-index="__IDX__">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <span class="fw-semibold text-muted small">Horario #<span class="row-number">__NUM__</span></span>
-            <button type="button" class="btn btn-sm btn-outline-danger remove-schedule-btn py-0 px-2">
-                <i class="fas fa-times me-1"></i>Eliminar
-            </button>
-        </div>
-
-        <!-- Schedule type -->
-        <div class="mb-2">
-            <label class="form-label small mb-1">Tipo de horario</label>
-            <select name="Schedules[__IDX__].ScheduleType" class="form-select form-select-sm schedule-type-select">
-                <option value="0">Semanal</option>
-                <option value="1">Quincenal</option>
-                <option value="2">Mensual</option>
-                <option value="3">Fecha Única</option>
-            </select>
-        </div>
-
-        <!-- Days checkboxes (Semanal / Quincenal) -->
-        <div class="mb-2 days-section">
-            <label class="form-label small mb-1">Días de la semana</label>
-            <div class="d-flex gap-2 flex-wrap">
-                @foreach (var (day, label) in new[] { ("Monday","Lun"),("Tuesday","Mar"),("Wednesday","Mié"),("Thursday","Jue"),("Friday","Vie"),("Saturday","Sáb"),("Sunday","Dom") })
-                {
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="checkbox"
-                               name="Schedules[__IDX__].@(day)" value="true"
-                               id="day_@(day)___IDX__" />
-                        <label class="form-check-label small" for="day_@(day)___IDX__">@label</label>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Day of month (Mensual) -->
-        <div class="mb-2 dom-section d-none">
-            <label class="form-label small mb-1">Día del mes</label>
-            <input type="number" name="Schedules[__IDX__].DayOfMonth" class="form-control form-control-sm"
-                   min="1" max="31" placeholder="Ej. 15" style="max-width:100px;" />
-        </div>
-
-        <!-- Specific date (Fecha Única) -->
-        <div class="mb-2 specific-date-section d-none">
-            <label class="form-label small mb-1">Fecha específica</label>
-            <input type="date" name="Schedules[__IDX__].SpecificDate" class="form-control form-control-sm"
-                   style="max-width:180px;" />
-        </div>
-
-        <!-- Times -->
-        <div class="row g-2 mb-2">
-            <div class="col-auto">
-                <label class="form-label small mb-1">Hora inicio</label>
-                <input type="time" name="Schedules[__IDX__].StartTime" class="form-control form-control-sm" required />
-            </div>
-            <div class="col-auto">
-                <label class="form-label small mb-1">Hora fin</label>
-                <input type="time" name="Schedules[__IDX__].EndTime" class="form-control form-control-sm" required />
-            </div>
-        </div>
-
-        <!-- Effective dates -->
-        <div class="row g-2 mb-2">
-            <div class="col">
-                <label class="form-label small mb-1">Vigencia desde</label>
-                <input type="date" name="Schedules[__IDX__].EffectiveFrom" class="form-control form-control-sm" />
-            </div>
-            <div class="col">
-                <label class="form-label small mb-1">Vigencia hasta</label>
-                <input type="date" name="Schedules[__IDX__].EffectiveTo" class="form-control form-control-sm" />
-            </div>
-        </div>
-
-        <!-- Notes -->
-        <div>
-            <label class="form-label small mb-1">Notas</label>
-            <input type="text" name="Schedules[__IDX__].Notes" class="form-control form-control-sm"
-                   placeholder="Notas opcionales del horario..." />
+<!-- Schedule row JS template — pure HTML, no Razor -->
+<script id="scheduleRowTemplate" type="text/x-template">
+<div class="schedule-row border border-secondary rounded p-3 mb-3" data-index="{{IDX}}">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+        <span class="fw-semibold text-muted small">Horario #<span class="row-number">{{NUM}}</span></span>
+        <button type="button" class="btn btn-sm btn-outline-danger remove-schedule-btn py-0 px-2">
+            <i class="fas fa-times me-1"></i>Eliminar
+        </button>
+    </div>
+    <div class="mb-2">
+        <label class="form-label small mb-1">Tipo de horario</label>
+        <select name="Schedules[{{IDX}}].ScheduleType" class="form-select form-select-sm schedule-type-select">
+            <option value="1">Semanal</option>
+            <option value="2">Quincenal</option>
+            <option value="3">Mensual</option>
+            <option value="4">Fecha Única</option>
+        </select>
+    </div>
+    <div class="mb-2 days-section">
+        <label class="form-label small mb-1">Días de la semana</label>
+        <div class="d-flex gap-2 flex-wrap">
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Monday"    value="true" /><label class="form-check-label small">Lun</label></div>
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Tuesday"   value="true" /><label class="form-check-label small">Mar</label></div>
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Wednesday" value="true" /><label class="form-check-label small">Mié</label></div>
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Thursday"  value="true" /><label class="form-check-label small">Jue</label></div>
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Friday"    value="true" /><label class="form-check-label small">Vie</label></div>
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Saturday"  value="true" /><label class="form-check-label small">Sáb</label></div>
+            <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" name="Schedules[{{IDX}}].Sunday"    value="true" /><label class="form-check-label small">Dom</label></div>
         </div>
     </div>
-</template>
+    <div class="mb-2 dom-section d-none">
+        <label class="form-label small mb-1">Día del mes</label>
+        <input type="number" name="Schedules[{{IDX}}].DayOfMonth" class="form-control form-control-sm" min="1" max="31" placeholder="Ej. 15" style="max-width:100px;" />
+    </div>
+    <div class="mb-2 specific-date-section d-none">
+        <label class="form-label small mb-1">Fecha específica</label>
+        <input type="date" name="Schedules[{{IDX}}].SpecificDate" class="form-control form-control-sm" style="max-width:180px;" />
+    </div>
+    <div class="row g-2 mb-2">
+        <div class="col-auto">
+            <label class="form-label small mb-1">Hora inicio</label>
+            <input type="time" name="Schedules[{{IDX}}].StartTime" class="form-control form-control-sm" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label small mb-1">Hora fin</label>
+            <input type="time" name="Schedules[{{IDX}}].EndTime" class="form-control form-control-sm" />
+        </div>
+    </div>
+    <div class="row g-2 mb-2">
+        <div class="col">
+            <label class="form-label small mb-1">Vigencia desde</label>
+            <input type="date" name="Schedules[{{IDX}}].EffectiveFrom" class="form-control form-control-sm" />
+        </div>
+        <div class="col">
+            <label class="form-label small mb-1">Vigencia hasta</label>
+            <input type="date" name="Schedules[{{IDX}}].EffectiveTo" class="form-control form-control-sm" />
+        </div>
+    </div>
+    <div>
+        <label class="form-label small mb-1">Notas</label>
+        <input type="text" name="Schedules[{{IDX}}].Notes" class="form-control form-control-sm" placeholder="Notas opcionales del horario..." />
+    </div>
+</div>
+</script>
 
 @section Scripts {
 @{await Html.RenderPartialAsync("_ValidationScripts");}
@@ -329,12 +305,12 @@ document.getElementById('unlimitedCapacity')?.addEventListener('change', functio
     if (this.checked) inp.value = '';
 });
 
-// Schedule type visibility
+// Schedule type visibility — enum: Weekly=1, Biweekly=2, Monthly=3, OneTime=4
 function updateScheduleSections(row) {
     const type = row.querySelector('.schedule-type-select')?.value;
-    row.querySelector('.days-section')?.classList.toggle('d-none', type === '2' || type === '3');
-    row.querySelector('.dom-section')?.classList.toggle('d-none', type !== '2');
-    row.querySelector('.specific-date-section')?.classList.toggle('d-none', type !== '3');
+    row.querySelector('.days-section')?.classList.toggle('d-none', type !== '1' && type !== '2');
+    row.querySelector('.dom-section')?.classList.toggle('d-none', type !== '3');
+    row.querySelector('.specific-date-section')?.classList.toggle('d-none', type !== '4');
 }
 
 document.addEventListener('change', function (e) {
@@ -364,11 +340,11 @@ document.addEventListener('click', function (e) {
 // Add schedule row
 let scheduleCount = document.querySelectorAll('.schedule-row').length;
 document.getElementById('addScheduleBtn')?.addEventListener('click', function () {
-    const template = document.getElementById('scheduleRowTemplate');
-    const idx = scheduleCount++;
-    let html = template.innerHTML
-        .replace(/__IDX__/g, idx)
-        .replace(/__NUM__/g, idx + 1);
+    const tmpl = document.getElementById('scheduleRowTemplate');
+    const idx  = scheduleCount++;
+    const html = tmpl.textContent
+        .replace(/\{\{IDX\}\}/g, idx)
+        .replace(/\{\{NUM\}\}/g, idx + 1);
     const tmp = document.createElement('div');
     tmp.innerHTML = html;
     const newRow = tmp.firstElementChild;
@@ -382,12 +358,6 @@ function reindexSchedules() {
         row.querySelector('.row-number').textContent = i + 1;
         row.querySelectorAll('[name]').forEach(el => {
             el.name = el.name.replace(/Schedules\[\d+\]/, `Schedules[${i}]`);
-        });
-        row.querySelectorAll('[id]').forEach(el => {
-            el.id = el.id.replace(/_\d+$/, '_' + i);
-        });
-        row.querySelectorAll('[for]').forEach(el => {
-            el.htmlFor = el.htmlFor.replace(/_\d+$/, '_' + i);
         });
     });
     scheduleCount = document.querySelectorAll('.schedule-row').length;

@@ -1,0 +1,65 @@
+@model FitManager.ViewModels.ReportFilterViewModel
+@* Partial: barra de filtro de fecha compartida entre todos los reportes *@
+@{
+    var (from, to) = Model.Resolve();
+}
+
+<div class="fm-card p-3 mb-4">
+    <form method="get" class="d-flex flex-wrap align-items-end gap-3">
+
+        <div>
+            <label class="form-label small mb-1 text-muted">Período</label>
+            <div class="btn-group" role="group">
+                @foreach (var preset in new[] {
+                    (FitManager.ViewModels.DateRangePreset.Today,         "Hoy"),
+                    (FitManager.ViewModels.DateRangePreset.LastWeek,      "Semana"),
+                    (FitManager.ViewModels.DateRangePreset.LastMonth,     "Mes"),
+                    (FitManager.ViewModels.DateRangePreset.PreviousMonth, "Mes ant."),
+                    (FitManager.ViewModels.DateRangePreset.ThisYear,      "Este año"),
+                    (FitManager.ViewModels.DateRangePreset.Custom,        "Personalizado"),
+                })
+                {
+                    <button type="submit" name="Preset" value="@((int)preset.Item1)"
+                            class="btn btn-sm @(Model.Preset == preset.Item1 ? "btn-accent" : "btn-outline-secondary")">
+                        @preset.Item2
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div id="customDates" class="d-flex gap-2 align-items-end @(Model.Preset != FitManager.ViewModels.DateRangePreset.Custom ? "d-none" : "")">
+            <div>
+                <label class="form-label small mb-1 text-muted">Desde</label>
+                <input type="date" name="From" class="form-control form-control-sm"
+                       value="@(Model.From?.ToString("yyyy-MM-dd") ?? from.ToString("yyyy-MM-dd"))"
+                       style="min-width:140px;" />
+            </div>
+            <div>
+                <label class="form-label small mb-1 text-muted">Hasta</label>
+                <input type="date" name="To" class="form-control form-control-sm"
+                       value="@(Model.To?.ToString("yyyy-MM-dd") ?? to.ToString("yyyy-MM-dd"))"
+                       style="min-width:140px;" />
+            </div>
+            <button type="submit" name="Preset" value="@((int)FitManager.ViewModels.DateRangePreset.Custom)"
+                    class="btn btn-sm btn-accent">
+                <i class="fas fa-search me-1"></i>Aplicar
+            </button>
+        </div>
+
+        <span class="ms-auto text-muted small align-self-center">
+            <i class="fas fa-calendar-alt me-1"></i>
+            @from.ToString("dd/MM/yyyy") – @to.ToString("dd/MM/yyyy")
+        </span>
+
+    </form>
+</div>
+
+<script>
+document.querySelectorAll('.btn-group [name="Preset"]').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const isCustom = this.value === '@((int)FitManager.ViewModels.DateRangePreset.Custom)';
+        document.getElementById('customDates')?.classList.toggle('d-none', !isCustom);
+        if (!isCustom) this.form.submit();
+    });
+});
+</script>

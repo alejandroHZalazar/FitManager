@@ -1,0 +1,47 @@
+@model FitManager.Models.CompanySettings
+@* Partial usado como encabezado en todas las páginas de reportes *@
+
+<div class="d-flex align-items-center gap-3 mb-4 pb-3" style="border-bottom:1px solid rgba(255,255,255,.1);">
+    @if (!string.IsNullOrEmpty(Model?.LogoPath))
+    {
+        <img src="/@Model.LogoPath" alt="Logo"
+             style="height:52px;max-width:120px;object-fit:contain;" />
+    }
+    else
+    {
+        <div class="rounded d-flex align-items-center justify-content-center flex-shrink-0"
+             style="width:52px;height:52px;background:rgba(79,136,227,.15);">
+            <i class="fas fa-dumbbell text-accent" style="font-size:1.4rem;"></i>
+        </div>
+    }
+    <div>
+        <div class="fw-bold fs-5">@(Model?.Name ?? "FitManager")</div>
+        @if (!string.IsNullOrEmpty(Model?.Slogan))
+        {
+            <div class="text-muted small">@Model.Slogan</div>
+        }
+        @{
+            var parts = new List<string>();
+            if (!string.IsNullOrEmpty(Model?.Address))  parts.Add(Model.Address);
+            if (!string.IsNullOrEmpty(Model?.City))     parts.Add(Model.City);
+            if (!string.IsNullOrEmpty(Model?.Province)) parts.Add(Model.Province);
+        }
+        @if (parts.Any())
+        {
+            <div class="text-muted small"><i class="fas fa-map-marker-alt me-1 opacity-50"></i>@string.Join(", ", parts)</div>
+        }
+        @if (!string.IsNullOrEmpty(Model?.Phone) || !string.IsNullOrEmpty(Model?.Email))
+        {
+            <div class="text-muted small">
+                @if (!string.IsNullOrEmpty(Model?.Phone))
+                {
+                    <span class="me-3"><i class="fas fa-phone me-1 opacity-50"></i>@Model.Phone</span>
+                }
+                @if (!string.IsNullOrEmpty(Model?.Email))
+                {
+                    <span><i class="fas fa-envelope me-1 opacity-50"></i>@Model.Email</span>
+                }
+            </div>
+        }
+    </div>
+</div>

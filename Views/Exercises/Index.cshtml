@@ -1,0 +1,201 @@
+@model List<FitManager.ViewModels.ExerciseListViewModel>
+@using FitManager.Models
+@{
+    ViewData["Title"] = "Biblioteca de Ejercicios";
+    ViewData["BreadcrumbParent"] = "Rutinas";
+    var selectedMuscle = (MuscleGroup?)ViewBag.SelectedMuscle;
+    var selectedType   = (ExerciseType?)ViewBag.SelectedType;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="fas fa-book-open me-2 text-accent"></i>Biblioteca de Ejercicios</h1>
+        <p class="text-muted mb-0">@Model.Count ejercicio(s) encontrados</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-accent">
+            <i class="fas fa-plus me-1"></i>Nuevo Ejercicio
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Filtros -->
+<div class="card fm-card mb-4">
+    <div class="card-body py-2">
+        <form asp-action="Index" method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Grupo Muscular</label>
+                <select name="muscle" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">— Todos —</option>
+                    @foreach (var mg in Enum.GetValues<MuscleGroup>())
+                    {
+                        var label = mg switch {
+                            MuscleGroup.Chest => "Pecho", MuscleGroup.Back => "Espalda",
+                            MuscleGroup.Shoulders => "Hombros", MuscleGroup.Biceps => "Bíceps",
+                            MuscleGroup.Triceps => "Tríceps", MuscleGroup.Quadriceps => "Cuádriceps",
+                            MuscleGroup.Hamstrings => "Femorales", MuscleGroup.Calves => "Pantorrillas",
+                            MuscleGroup.Glutes => "Glúteos", MuscleGroup.Abs => "Abdominales",
+                            MuscleGroup.Cardio => "Cardio", MuscleGroup.FullBody => "Cuerpo Completo",
+                            _ => "Otro"
+                        };
+                        <option value="@((int)mg)" selected="@(selectedMuscle == mg)">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Tipo</label>
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">— Todos —</option>
+                    @foreach (var et in Enum.GetValues<ExerciseType>())
+                    {
+                        var label = et switch {
+                            ExerciseType.Strength => "Fuerza", ExerciseType.Cardio => "Cardio",
+                            ExerciseType.Flexibility => "Flexibilidad", ExerciseType.Balance => "Equilibrio",
+                            ExerciseType.Functional => "Funcional", _ => "Otro"
+                        };
+                        <option value="@((int)et)" selected="@(selectedType == et)">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card fm-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="exercisesTable" class="table table-hover fm-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Grupo Muscular</th>
+                        <th>Tipo</th>
+                        <th class="text-center">Origen</th>
+                        <th class="text-center">Usos</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ex in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@ex.Name</td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary">@ex.MuscleGroup</span>
+                            </td>
+                            <td>
+                                @{
+                                    var typeColor = ex.ExerciseTypeEnum switch {
+                                        ExerciseType.Cardio => "bg-danger",
+                                        ExerciseType.Flexibility => "bg-success",
+                                        ExerciseType.Functional => "bg-warning text-dark",
+                                        _ => "bg-primary"
+                                    };
+                                }
+                                <span class="badge @typeColor">@ex.ExerciseType</span>
+                            </td>
+                            <td class="text-center">
+                                @if (ex.IsCustom)
+                                {
+                                    <span class="badge bg-info">Personalizado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-dark border border-secondary">Sistema</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge @(ex.UsageCount > 0 ? "bg-info" : "bg-dark border border-secondary")">
+                                    @ex.UsageCount
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (ex.IsActive)
+                                {
+                                    <span class="badge badge-status bg-success">
+                                        <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Activo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-status bg-secondary">
+                                        <i class="fas fa-circle me-1" style="font-size:.5rem;"></i>Inactivo
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a asp-action="Edit" asp-route-id="@ex.Id"
+                                       class="btn btn-sm btn-icon btn-outline-warning" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form asp-action="ToggleActive" asp-route-id="@ex.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-icon @(ex.IsActive ? "btn-outline-secondary" : "btn-outline-success")"
+                                                title="@(ex.IsActive ? "Desactivar" : "Activar")">
+                                            <i class="fas @(ex.IsActive ? "fa-toggle-off" : "fa-toggle-on")"></i>
+                                        </button>
+                                    </form>
+                                    @if (ex.UsageCount == 0)
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@ex.Id" method="post" class="d-inline delete-form">
+                                            @Html.AntiForgeryToken()
+                                            <button type="button" class="btn btn-sm btn-icon btn-outline-danger btn-delete"
+                                                    data-name="@ex.Name">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+$(document).ready(function () {
+    $('#exercisesTable').DataTable({
+        language: dtSpanish, pageLength: 25, order: [[0, 'asc']],
+        columnDefs: [{ orderable: false, targets: [6] }]
+    });
+    $(document).on('click', '.btn-delete', function () {
+        const form = $(this).closest('.delete-form');
+        const name = $(this).data('name');
+        Swal.fire({
+            title: '¿Eliminar ejercicio?',
+            html: `¿Eliminás <strong>${name}</strong> de la biblioteca?`,
+            icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fas fa-trash me-1"></i>Sí, eliminar',
+            cancelButtonText: 'Cancelar', background: '#1a1d27', color: '#e0e0e0'
+        }).then(r => { if (r.isConfirmed) form.submit(); });
+    });
+});
+</script>
+}

@@ -1,0 +1,233 @@
+@model FitManager.ViewModels.NutritionPrintViewModel
+@using FitManager.Models
+@{
+    Layout = null;
+    var p  = Model.Plan;
+    var m  = Model.Member;
+    var a  = Model.Assignment;
+    var co = Model.Company;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Plan de Nutrición — @m.FullName</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; padding: 0; }
+        .page { max-width: 760px; margin: 0 auto; padding: 24px 28px; }
+
+        /* Empresa */
+        .company-header { display:flex; align-items:center; gap:14px; border-bottom:3px solid #1a1a1a; padding-bottom:12px; margin-bottom:16px; }
+        .company-logo   { width:58px; height:58px; object-fit:contain; }
+        .company-logo-icon { width:58px; height:58px; font-size:34px; display:flex; align-items:center; justify-content:center; color:#444; }
+        .company-name   { font-size:19px; font-weight:bold; }
+        .company-slogan { font-size:10px; color:#666; margin-top:2px; }
+        .company-contact{ font-size:10px; color:#555; margin-top:4px; line-height:1.6; }
+
+        /* Socio */
+        .member-section { display:flex; gap:12px; background:#f5f5f5; border-radius:5px; padding:9px 12px; margin-bottom:14px; flex-wrap:wrap; }
+        .member-section .col { flex:1; min-width:100px; }
+        .member-section .label { font-size:9px; text-transform:uppercase; color:#888; letter-spacing:.5px; }
+        .member-section .value { font-size:12px; font-weight:bold; }
+
+        /* Plan header */
+        .plan-header { border:1px solid #ddd; border-radius:5px; padding:9px 12px; margin-bottom:14px; }
+        .plan-title  { font-size:16px; font-weight:bold; }
+        .plan-meta   { font-size:10px; color:#666; margin-top:4px; }
+        .plan-meta span { margin-right:14px; }
+
+        /* Recomendaciones */
+        .reco-box { background:#fffbe6; border-left:3px solid #f5a623; padding:8px 12px; border-radius:0 5px 5px 0; margin-bottom:14px; font-size:10px; color:#555; line-height:1.7; }
+        .reco-box strong { color:#333; }
+
+        /* Grilla comidas */
+        .meals-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .meal-card  { border:1px solid #ddd; border-radius:5px; page-break-inside:avoid; }
+        .meal-header{ background:#2c2c2c; color:#fff; padding:5px 10px; border-radius:4px 4px 0 0; font-weight:bold; font-size:11px; display:flex; align-items:center; gap:7px; }
+        .meal-icon  { font-size:13px; }
+        .meal-body  { padding:8px 10px; }
+        .meal-content  { font-size:11px; line-height:1.6; white-space:pre-line; }
+        .meal-qty   { font-size:10px; color:#666; margin-top:4px; }
+        .meal-notes { font-size:10px; color:#888; font-style:italic; margin-top:3px; }
+
+        /* Footer */
+        .print-footer { margin-top:20px; border-top:1px solid #ddd; padding-top:8px; font-size:9px; color:#aaa; display:flex; justify-content:space-between; }
+
+        /* Print btn */
+        .no-print { text-align:right; padding:12px 28px 0; }
+        .no-print button { padding:7px 16px; border:none; border-radius:4px; cursor:pointer; font-size:12px; }
+        .btn-print { background:#333; color:#fff; }
+        .btn-close-w { background:#888; color:#fff; margin-left:6px; }
+
+        @@media print {
+            .no-print { display:none !important; }
+            body { padding:0; }
+            .page { padding:14px 18px; }
+            .meals-grid { grid-template-columns:1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn-close-w" onclick="window.close()">✕ Cerrar</button>
+</div>
+
+<div class="page">
+
+    <!-- Empresa -->
+    <div class="company-header">
+        <div>
+            @if (!string.IsNullOrEmpty(co?.LogoPath))
+            {
+                <img src="/@co.LogoPath" class="company-logo" alt="Logo" />
+            }
+            else
+            {
+                <div class="company-logo-icon">🏋</div>
+            }
+        </div>
+        <div>
+            <div class="company-name">@(co?.Name ?? "FitManager")</div>
+            @if (!string.IsNullOrWhiteSpace(co?.Slogan))
+            {
+                <div class="company-slogan">@co.Slogan</div>
+            }
+            <div class="company-contact">
+                @{
+                    var addr = string.Join(", ", new[] { co?.Address, co?.City, co?.Province }
+                        .Where(s => !string.IsNullOrWhiteSpace(s)));
+                }
+                @if (!string.IsNullOrEmpty(addr)) { <span>📍 @addr</span><br /> }
+                @if (!string.IsNullOrWhiteSpace(co?.Phone)) { <span>📞 @co.Phone</span> }
+                @if (!string.IsNullOrWhiteSpace(co?.Email)) { <span style="margin-left:10px;">✉ @co.Email</span> }
+            </div>
+        </div>
+        <div style="margin-left:auto; text-align:right; flex-shrink:0;">
+            <div style="font-size:16px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">Plan de Nutrición</div>
+            <div style="font-size:10px; color:#888; margin-top:3px;">Emitido: @DateTime.Now.ToString("dd/MM/yyyy")</div>
+        </div>
+    </div>
+
+    <!-- Socio -->
+    <div class="member-section">
+        <div class="col">
+            <div class="label">Socio</div>
+            <div class="value">@m.FullName</div>
+        </div>
+        <div class="col">
+            <div class="label">N° Socio</div>
+            <div class="value">@m.MemberNumber</div>
+        </div>
+        @if (a.StartDate.HasValue)
+        {
+            <div class="col">
+                <div class="label">Inicio</div>
+                <div class="value">@a.StartDate.Value.ToString("dd/MM/yyyy")</div>
+            </div>
+        }
+        @if (a.EndDate.HasValue)
+        {
+            <div class="col">
+                <div class="label">Fin</div>
+                <div class="value">@a.EndDate.Value.ToString("dd/MM/yyyy")</div>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(m.Phone))
+        {
+            <div class="col">
+                <div class="label">Teléfono</div>
+                <div class="value">@m.Phone</div>
+            </div>
+        }
+    </div>
+
+    <!-- Plan header -->
+    <div class="plan-header">
+        <div class="plan-title">@p.Name</div>
+        <div class="plan-meta">
+            <span><strong>Objetivo:</strong> @Model.GoalLabel</span>
+            <span><strong>Duración:</strong> @Model.DurationLabel</span>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(p.Description))
+        {
+            <div style="font-size:10px; color:#555; margin-top:4px;">@p.Description</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(a.Notes))
+        {
+            <div style="font-size:10px; color:#555; margin-top:4px;"><strong>Indicaciones personales:</strong> @a.Notes</div>
+        }
+    </div>
+
+    <!-- Recomendaciones -->
+    @if (!string.IsNullOrWhiteSpace(p.GeneralNotes))
+    {
+        <div class="reco-box">
+            <strong>💡 Recomendaciones generales:</strong><br />
+            <span style="white-space:pre-line;">@p.GeneralNotes</span>
+        </div>
+    }
+
+    <!-- Comidas -->
+    @if (p.Meals.Any())
+    {
+        <div class="meals-grid">
+            @foreach (var meal in p.Meals.OrderBy(x => x.OrderIndex))
+            {
+                var icon = meal.MealType switch
+                {
+                    MealType.Breakfast      => "🌅",
+                    MealType.MorningSnack   => "🍎",
+                    MealType.Lunch          => "🍽",
+                    MealType.AfternoonSnack => "☕",
+                    MealType.Dinner         => "🌙",
+                    MealType.EveningSnack   => "🍪",
+                    _                       => "🥗"
+                };
+                var mealLabel = meal.MealType switch
+                {
+                    MealType.Breakfast      => "Desayuno",
+                    MealType.MorningSnack   => "Colación Mañana",
+                    MealType.Lunch          => "Almuerzo",
+                    MealType.AfternoonSnack => "Merienda",
+                    MealType.Dinner         => "Cena",
+                    MealType.EveningSnack   => "Colación Noche",
+                    _                       => "Comida"
+                };
+                var displayName = string.IsNullOrWhiteSpace(meal.CustomName) ? mealLabel : meal.CustomName;
+
+                <div class="meal-card">
+                    <div class="meal-header">
+                        <span class="meal-icon">@icon</span>
+                        <span>@displayName</span>
+                    </div>
+                    <div class="meal-body">
+                        @if (!string.IsNullOrWhiteSpace(meal.Content))
+                        {
+                            <div class="meal-content">@meal.Content</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(meal.Quantities))
+                        {
+                            <div class="meal-qty">⚖ @meal.Quantities</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(meal.Notes))
+                        {
+                            <div class="meal-notes">📝 @meal.Notes</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Footer -->
+    <div class="print-footer">
+        <span>Impreso el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+        <span>@(co?.Name ?? "FitManager") — Plan de Nutrición</span>
+    </div>
+
+</div>
+</body>
+</html>
