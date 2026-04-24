@@ -57,8 +57,9 @@
         /* Print btn */
         .no-print { text-align:right; padding:12px 28px 0; }
         .no-print button { padding:7px 16px; border:none; border-radius:4px; cursor:pointer; font-size:12px; }
-        .btn-print { background:#333; color:#fff; }
-        .btn-close-w { background:#888; color:#fff; margin-left:6px; }
+        .btn-print    { background:#333; color:#fff; }
+        .btn-download { background:#1a6fa8; color:#fff; margin-left:6px; }
+        .btn-close-w  { background:#888; color:#fff; margin-left:6px; }
 
         @@media print {
             .no-print { display:none !important; }
@@ -72,6 +73,7 @@
 
 <div class="no-print">
     <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+    <button id="btn-download" class="btn-download" onclick="downloadPdf()">⬇ Descargar PDF</button>
     <button class="btn-close-w" onclick="window.close()">✕ Cerrar</button>
 </div>
 
@@ -229,5 +231,28 @@
     </div>
 
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function downloadPdf() {
+    var btn = document.getElementById('btn-download');
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando...';
+    html2pdf()
+        .set({
+            margin: [8, 8, 8, 8],
+            filename: 'Nutricion_@(m.FullName.Replace(" ", "_")).pdf',
+            image:     { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF:     { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        })
+        .from(document.querySelector('.page'))
+        .save()
+        .then(function() {
+            btn.disabled = false;
+            btn.textContent = '⬇ Descargar PDF';
+        });
+}
+</script>
 </body>
 </html>

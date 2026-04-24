@@ -68,7 +68,8 @@
         /* ── Botones (solo pantalla) ────────────────────────────────────── */
         .no-print { text-align: right; padding: 12px 32px 0; }
         .no-print button { padding: 7px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-print { background: #333; color: #fff; }
+        .btn-print   { background: #333; color: #fff; }
+        .btn-download{ background: #1a6fa8; color: #fff; margin-left: 6px; }
         .btn-close-win { background: #888; color: #fff; margin-left: 6px; }
 
         @@media print {
@@ -83,6 +84,7 @@
 <!-- ── Botones pantalla ─────────────────────────────────────────────── -->
 <div class="no-print">
     <button class="btn-print" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn-download" onclick="downloadPdf()">⬇ Descargar PDF</button>
     <button class="btn-close-win" onclick="window.close()">✕ Cerrar</button>
 </div>
 
@@ -224,5 +226,28 @@
     </div>
 
 </div><!-- /page -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function downloadPdf() {
+    const btn = document.querySelector('.btn-download');
+    btn.disabled = true;
+    btn.textContent = '⏳ Generando...';
+    html2pdf()
+        .set({
+            margin: [8, 8, 8, 8],
+            filename: 'Comprobante_@(receiptNum).pdf',
+            image:     { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF:     { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        })
+        .from(document.querySelector('.page'))
+        .save()
+        .then(() => {
+            btn.disabled = false;
+            btn.textContent = '⬇ Descargar PDF';
+        });
+}
+</script>
 </body>
 </html>
