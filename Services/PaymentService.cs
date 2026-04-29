@@ -75,10 +75,10 @@ public class PaymentService : IPaymentService
                 payment.Description ??= plan.Name;
                 if (payment.Amount == 0) payment.Amount = plan.Price;
 
-                // Create MemberPlan
-                var memberPlan = await CreateOrUpdateMemberPlanAsync(vm.MemberId, plan, payment.PaymentDate);
+                // Create MemberPlan respetando la fecha de vencimiento que eligió el usuario
+                var memberPlan = await CreateOrUpdateMemberPlanAsync(vm.MemberId, plan, payment.PaymentDate, vm.DueDate);
                 payment.MemberPlanId = memberPlan.Id;
-                payment.DueDate = memberPlan.EndDate;
+                // payment.DueDate ya viene del formulario — no sobreescribir con la del plan
             }
         }
 
@@ -99,6 +99,18 @@ public class PaymentService : IPaymentService
     {
         var payment = await _db.Payments.FindAsync(id);
         if (payment == null) return false;
+
+        // Expirar el MemberPlan asociado para que no "acumule" en futuros pagos
+        if (payment.MemberPlanId.HasValue)
+        {
+            var mp = await _db.MemberPlans.FindAsync(payment.MemberPlanId.Value);
+            if (mp != null)
+            {
+                mp.Status    = MemberPlanStatus.Expired;
+                mp.PaymentId = null;
+            }
+        }
+
         _db.Payments.Remove(payment);
         await _db.SaveChangesAsync();
         return true;
@@ -114,12 +126,12 @@ public class PaymentService : IPaymentService
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private async Task<MemberPlan> CreateOrUpdateMemberPlanAsync(int memberId, Plan plan, DateTime startDate)
+    private async Task<MemberPlan> CreateOrUpdateMemberPlanAsync(
+        int memberId, Plan plan, DateTime startDate, DateTime? overrideDueDate = null)
     {
         var today = DateTime.Today;
 
         // ── Expirar todos los MemberPlans del socio cuya fecha de fin ya pasó ──
-        // Evita que planes vencidos sigan apareciendo como "activos" en alertas.
         var staleOnes = await _db.MemberPlans
             .Where(mp => mp.MemberId == memberId
                       && mp.Status == MemberPlanStatus.Active
@@ -132,12 +144,14 @@ public class PaymentService : IPaymentService
         if (staleOnes.Any())
             await _db.SaveChangesAsync();
 
-        // ── Buscar el plan VIGENTE más lejano del mismo tipo para extender ──────
+        // ── Buscar el plan VIGENTE más lejano que tenga un pago válido asociado ─
+        // Se excluyen los MemberPlans huérfanos (PaymentId nulo = pago eliminado).
         var existing = await _db.MemberPlans
             .Where(mp => mp.MemberId == memberId
                       && mp.PlanId == plan.Id
                       && mp.Status == MemberPlanStatus.Active
-                      && mp.EndDate.Date >= today)
+                      && mp.EndDate.Date >= today
+                      && mp.PaymentId != null)          // solo si tiene pago activo
             .OrderByDescending(mp => mp.EndDate)
             .FirstOrDefaultAsync();
 
@@ -145,12 +159,17 @@ public class PaymentService : IPaymentService
             ? existing.EndDate.AddDays(1)   // acumula días si ya tiene ese plan vigente
             : startDate;
 
+        // Si el usuario especificó una fecha de vencimiento manual, usarla como EndDate
+        DateTime end = overrideDueDate.HasValue
+            ? overrideDueDate.Value
+            : start.AddDays(plan.DurationDays - 1);
+
         var memberPlan = new MemberPlan
         {
             MemberId  = memberId,
             PlanId    = plan.Id,
             StartDate = start,
-            EndDate   = start.AddDays(plan.DurationDays - 1),
+            EndDate   = end,
             Status    = MemberPlanStatus.Active,
             CreatedAt = DateTime.UtcNow
         };
