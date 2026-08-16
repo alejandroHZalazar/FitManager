@@ -7,6 +7,7 @@ public interface IMemberService
 {
     Task<List<Member>> GetAllAsync();
     Task<Member?> GetByIdAsync(int id);
+    Task<Member?> GetByDniAsync(string dni);
     Task<Member> CreateAsync(MemberViewModel vm);
     Task<Member> UpdateAsync(MemberViewModel vm);
     Task<bool> DeleteAsync(int id);

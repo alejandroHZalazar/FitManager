@@ -51,11 +51,22 @@
                                 }
                             </td>
                             <td class="text-center">
-                                <a asp-controller="Payments" asp-action="Create"
-                                   asp-route-memberId="@a.MemberId"
-                                   class="btn btn-sm btn-outline-accent" title="Registrar Renovación">
-                                    <i class="fas fa-rotate-right me-1"></i>Renovar
-                                </a>
+                                <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <a asp-controller="Payments" asp-action="Create"
+                                       asp-route-memberId="@a.MemberId"
+                                       class="btn btn-sm btn-outline-accent" title="Registrar Renovación">
+                                        <i class="fas fa-rotate-right me-1"></i>Renovar
+                                    </a>
+                                    @if (a.DaysUntilExpiry < 0)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-whatsapp"
+                                                title="Enviar aviso de deuda por WhatsApp"
+                                                onclick="sendDebtNotice(@a.MemberId, '@a.EndDate.ToString("yyyy-MM-dd")')">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </button>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }

@@ -64,6 +64,16 @@ a:hover { color: var(--fm-accent-dark); }
   background-color: var(--fm-accent);
   color: #fff;
 }
+.btn-whatsapp {
+  background-color: #25d366;
+  border-color: #25d366;
+  color: #fff;
+}
+.btn-whatsapp:hover {
+  background-color: #1ebe57;
+  border-color: #1ebe57;
+  color: #fff;
+}
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 .sidebar {

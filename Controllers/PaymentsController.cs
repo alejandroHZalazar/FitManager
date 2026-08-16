@@ -12,30 +12,37 @@ namespace FitManager.Controllers;
 [Authorize]
 public class PaymentsController : Controller
 {
-    private readonly IPaymentService _paymentService;
-    private readonly IPlanService    _planService;
-    private readonly ICompanyService _companyService;
+    private readonly IPaymentService      _paymentService;
+    private readonly IPlanService         _planService;
+    private readonly ICompanyService      _companyService;
+    private readonly IWhatsAppService     _whatsApp;      // para ResendWhatsApp (await directo, scope vivo)
     private readonly ApplicationDbContext _db;
+    private readonly IServiceScopeFactory _scopeFactory;  // para Task.Run (scope propio)
 
     public PaymentsController(IPaymentService paymentService, IPlanService planService,
-                               ICompanyService companyService, ApplicationDbContext db)
+                               ICompanyService companyService, IWhatsAppService whatsApp,
+                               ApplicationDbContext db, IServiceScopeFactory scopeFactory)
     {
         _paymentService = paymentService;
         _planService    = planService;
         _companyService = companyService;
+        _whatsApp       = whatsApp;
         _db             = db;
+        _scopeFactory   = scopeFactory;
     }
 
     // GET: /Payments
     public async Task<IActionResult> Index(PaymentFilterViewModel? filter)
     {
         var payments = await _paymentService.GetAllAsync(filter);
+        var company  = await _companyService.GetAsync();
 
-        ViewBag.Members = new SelectList(
+        ViewBag.Members          = new SelectList(
             await _db.Members.OrderBy(m => m.LastName).Select(m => new { m.Id, Name = m.LastName + ", " + m.FirstName }).ToListAsync(),
             "Id", "Name");
-        ViewBag.Plans   = new SelectList(await _planService.GetAllAsync(), "Id", "Name");
-        ViewBag.Filter  = filter ?? new PaymentFilterViewModel();
+        ViewBag.Plans            = new SelectList(await _planService.GetAllAsync(), "Id", "Name");
+        ViewBag.Filter           = filter ?? new PaymentFilterViewModel();
+        ViewBag.WhatsAppEnabled  = company.WhatsAppEnabled;
 
         return View(payments);
     }
@@ -65,6 +72,9 @@ public class PaymentsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(GlobalPaymentViewModel vm)
     {
+        if (vm.MemberId <= 0)
+            ModelState.AddModelError(nameof(vm.MemberId), "Debe seleccionar un socio.");
+
         if (!ModelState.IsValid)
         {
             vm.Members = await GetMembersSelectList();
@@ -91,8 +101,22 @@ public class PaymentsController : Controller
         };
 
         var payment = await _paymentService.CreateAsync(pvm, User.Identity?.Name ?? "system");
-        TempData["Success"]        = "Pago registrado exitosamente.";
-        TempData["NewPaymentId"]   = payment.Id;
+        TempData["Success"]      = "Pago registrado exitosamente.";
+        TempData["NewPaymentId"] = payment.Id;
+
+        // Notificación WhatsApp (en background, scope propio para evitar DbContext dispuesto)
+        var paymentId = payment.Id;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var whatsApp = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                await whatsApp.SendPaymentNotificationAsync(paymentId);
+            }
+            catch { /* log ya está en el servicio */ }
+        });
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -109,6 +133,15 @@ public class PaymentsController : Controller
             Payment = payment
         };
         return View(vm);
+    }
+
+    // POST: /Payments/ResendWhatsApp/5  → JSON {success, error}
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendWhatsApp(int id)
+    {
+        var (success, error) = await _whatsApp.ResendPaymentNotificationAsync(id);
+        return Json(new { success, error });
     }
 
     // POST: /Payments/Delete/5

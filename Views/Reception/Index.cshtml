@@ -1,0 +1,255 @@
+@model FitManager.ViewModels.ReceptionViewModel
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = "Recepción";
+}
+
+<style>
+    body.login-body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .reception-card {
+        background: rgba(30, 30, 46, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1rem;
+        padding: 3rem 2.5rem;
+        max-width: 560px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .reception-logo {
+        max-height: 100px;
+        max-width: 220px;
+        margin-bottom: 1.5rem;
+        object-fit: contain;
+    }
+
+    .reception-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0.5rem;
+    }
+
+    .reception-subtitle {
+        color: #a0a0b8;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+
+    #dniInput {
+        font-size: 2rem;
+        padding: 1rem;
+        text-align: center;
+        letter-spacing: 0.15em;
+        font-weight: 600;
+    }
+
+    /* Modal — foco grande y legible a distancia */
+    #welcomeModal .modal-content {
+        border-radius: 1rem;
+        border: 2px solid;
+        background: #1e1e2e;
+    }
+
+    #welcomeModal.status-ok       .modal-content { border-color: #22c55e; }
+    #welcomeModal.status-warning  .modal-content { border-color: #f59e0b; }
+    #welcomeModal.status-critical .modal-content { border-color: #f97316; }
+    #welcomeModal.status-expired  .modal-content { border-color: #ef4444; }
+    #welcomeModal.status-notfound .modal-content { border-color: #6b7280; }
+
+    #welcomeIcon         { font-size: 4.5rem; margin-bottom: 1rem; }
+    #welcomeGreeting     { font-size: 1.4rem; color: #a0a0b8; margin-bottom: .25rem; }
+    #welcomeMemberName   { font-size: 2.4rem; font-weight: 700; color: #fff; margin-bottom: 1.5rem; }
+    #welcomeStatusBadge  { font-size: 1.35rem; padding: .75rem 1.5rem; border-radius: .5rem; display: inline-block; margin-bottom: 1.25rem; font-weight: 600; }
+    #welcomeStatusDate   { color: #a0a0b8; font-size: 1rem; margin-bottom: 1.5rem; }
+    .plan-box            { display: inline-block; background: rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.15); padding:.75rem 1.5rem; border-radius:.75rem; font-size:1.25rem; font-weight:600; }
+    .plan-title          { color: #a0a0b8; font-size: .95rem; margin-bottom: .5rem; text-transform: uppercase; letter-spacing: .1em; }
+    .status-ok       #welcomeStatusBadge { background: rgba(34,197,94,.15);  color:#4ade80; }
+    .status-warning  #welcomeStatusBadge { background: rgba(245,158,11,.15); color:#fbbf24; }
+    .status-critical #welcomeStatusBadge { background: rgba(249,115,22,.15); color:#fb923c; }
+    .status-expired  #welcomeStatusBadge { background: rgba(239,68,68,.15);  color:#f87171; }
+    .status-notfound #welcomeStatusBadge { background: rgba(107,114,128,.15);color:#9ca3af; }
+
+    /* Countdown bar */
+    #modalCountdown {
+        height: 4px;
+        background: rgba(255,255,255,.08);
+        border-radius: 0 0 .875rem .875rem;
+        overflow: hidden;
+        margin-top: 1.5rem;
+    }
+    #modalCountdownBar { height: 100%; background: #ff6b35; width: 100%; }
+</style>
+
+<div class="reception-card">
+    @if (!string.IsNullOrEmpty(Model.LogoPath))
+    {
+        <img src="/@Model.LogoPath" alt="@Model.CompanyName" class="reception-logo" />
+    }
+    else
+    {
+        <i class="fas fa-dumbbell text-accent" style="font-size:3.5rem;margin-bottom:1rem;display:block;"></i>
+    }
+
+    <div class="reception-title">Bienvenido a @Model.CompanyName</div>
+    <div class="reception-subtitle">Ingresá tu DNI para registrar tu ingreso</div>
+
+    <form id="dniForm" autocomplete="off">
+        <input type="text" id="dniInput" class="form-control"
+               inputmode="numeric" pattern="[0-9]*" maxlength="20"
+               placeholder="DNI" autofocus />
+    </form>
+</div>
+
+<!-- ── Modal ─────────────────────────────────────────────────────────────── -->
+<div class="modal fade" id="welcomeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content text-center">
+            <div class="modal-body p-5">
+                <div id="welcomeIcon"></div>
+                <div id="welcomeGreeting">¡Bienvenido/a!</div>
+                <div id="welcomeMemberName"></div>
+
+                <div id="welcomeStatusBadge"></div>
+                <div id="welcomeStatusDate"></div>
+
+                <div id="welcomePlan">
+                    <div class="plan-title">Plan</div>
+                    <div id="planName"></div>
+                </div>
+            </div>
+            <div id="modalCountdown"><div id="modalCountdownBar"></div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load', function () {
+    const MODAL_SECONDS = @Model.ModalSeconds;
+    const dniInput  = document.getElementById('dniInput');
+    const dniForm   = document.getElementById('dniForm');
+    const modalEl   = document.getElementById('welcomeModal');
+    const bsModal   = new bootstrap.Modal(modalEl);
+    const bar       = document.getElementById('modalCountdownBar');
+
+    let currentToken = 0;
+    let modalTimer   = null;
+    let barTimer     = null;
+
+    function resetPage() {
+        clearTimeout(modalTimer);
+        clearInterval(barTimer);
+        modalTimer = null;
+        barTimer   = null;
+        dniInput.value = '';
+        dniInput.disabled = false;
+        setTimeout(() => dniInput.focus(), 100);
+    }
+
+    function scheduleAutoClose() {
+        clearTimeout(modalTimer);
+        clearInterval(barTimer);
+
+        const totalMs  = MODAL_SECONDS * 1000;
+        const startAt  = Date.now();
+        bar.style.width = '100%';
+        barTimer = setInterval(() => {
+            const pct = Math.max(0, 100 - ((Date.now() - startAt) / totalMs * 100));
+            bar.style.width = pct + '%';
+        }, 60);
+
+        modalTimer = setTimeout(() => {
+            bsModal.hide();
+        }, totalMs);
+    }
+
+    function renderFound(data) {
+        modalEl.className = 'modal fade status-' + data.level;
+        document.getElementById('welcomeIcon').innerHTML =
+            data.level === 'ok'       ? '<i class="fas fa-check-circle text-success"></i>'  :
+            data.level === 'warning'  ? '<i class="fas fa-clock text-warning"></i>'         :
+            data.level === 'critical' ? '<i class="fas fa-exclamation-triangle" style="color:#fb923c"></i>' :
+                                        '<i class="fas fa-times-circle text-danger"></i>';
+        document.getElementById('welcomeGreeting').textContent = '¡Bienvenido/a!';
+        document.getElementById('welcomeMemberName').textContent = data.memberName;
+        document.getElementById('welcomeStatusBadge').textContent = data.message;
+        document.getElementById('welcomeStatusDate').textContent =
+            data.endDate ? 'Vencimiento: ' + data.endDate : '';
+
+        const planEl   = document.getElementById('planName');
+        const planWrap = document.getElementById('welcomePlan');
+        if (data.planName) {
+            planEl.innerHTML = '<span class="plan-box"><i class="fas fa-id-card me-2"></i>' + escapeHtml(data.planName) + '</span>';
+        } else {
+            planEl.innerHTML = '<div class="text-muted small">Sin plan asociado</div>';
+        }
+        planWrap.style.display = '';
+    }
+
+    function renderNotFound(message) {
+        modalEl.className = 'modal fade status-notfound';
+        document.getElementById('welcomeIcon').innerHTML = '<i class="fas fa-user-slash text-secondary"></i>';
+        document.getElementById('welcomeGreeting').textContent = 'DNI no encontrado';
+        document.getElementById('welcomeMemberName').textContent = '';
+        document.getElementById('welcomeStatusBadge').textContent = message;
+        document.getElementById('welcomeStatusDate').textContent = '';
+        document.getElementById('welcomePlan').style.display = 'none';
+    }
+
+    async function lookup(dni) {
+        currentToken++;
+        const myToken = currentToken;
+        dniInput.disabled = true;
+
+        try {
+            const res  = await fetch('/Reception/Lookup?dni=' + encodeURIComponent(dni));
+            const data = await res.json();
+
+            // Descartar si llegó una consulta más nueva mientras esperábamos
+            if (myToken !== currentToken) return;
+
+            if (data.found) renderFound(data);
+            else            renderNotFound(data.message || 'No se encontraron datos.');
+
+            bsModal.show();
+            scheduleAutoClose();
+        } catch (err) {
+            if (myToken !== currentToken) return;
+            renderNotFound('Error de conexión. Intentá de nuevo.');
+            bsModal.show();
+            scheduleAutoClose();
+        } finally {
+            if (myToken === currentToken) dniInput.disabled = false;
+        }
+    }
+
+    dniForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const dni = dniInput.value.trim();
+        if (dni.length < 6) return;
+        lookup(dni);
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', resetPage);
+
+    // Foco al cargar
+    dniInput.focus();
+
+    // Re-focar si el usuario hace click fuera
+    document.addEventListener('click', function () {
+        if (!modalEl.classList.contains('show')) setTimeout(() => dniInput.focus(), 50);
+    });
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+});
+</script>

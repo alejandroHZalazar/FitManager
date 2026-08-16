@@ -2,6 +2,10 @@ using FitManager.Data;
 using FitManager.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
+
+// ── QuestPDF community license ────────────────────────────────────────────────
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +58,10 @@ builder.Services.AddScoped<FitManager.Services.IReportService,       FitManager.
 builder.Services.AddScoped<FitManager.Services.ICompanyService,      FitManager.Services.CompanyService>();
 builder.Services.AddScoped<FitManager.Services.IRoutineService,      FitManager.Services.RoutineService>();
 builder.Services.AddScoped<FitManager.Services.INutritionService,    FitManager.Services.NutritionService>();
+builder.Services.AddScoped<FitManager.Services.IReceiptPdfService,   FitManager.Services.ReceiptPdfService>();
+builder.Services.AddScoped<FitManager.Services.IWhatsAppService,     FitManager.Services.WhatsAppService>();
+builder.Services.AddHttpClient("whatsapp")
+    .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
 
 var app = builder.Build();
 

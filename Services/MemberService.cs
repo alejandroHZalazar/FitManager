@@ -26,6 +26,9 @@ public class MemberService : IMemberService
     public async Task<Member?> GetByIdAsync(int id) =>
         await _db.Members.Include(m => m.Payments).FirstOrDefaultAsync(m => m.Id == id);
 
+    public Task<Member?> GetByDniAsync(string dni) =>
+        _db.Members.AsNoTracking().FirstOrDefaultAsync(m => m.DNI == dni);
+
     public async Task<string> GenerateMemberNumberAsync()
     {
         var year = DateTime.Today.Year;

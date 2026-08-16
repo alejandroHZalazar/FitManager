@@ -2,6 +2,7 @@ using FitManager.Services;
 using FitManager.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace FitManager.Controllers;
 
@@ -21,6 +22,7 @@ public class CompanyController : Controller
     public async Task<IActionResult> Settings()
     {
         var settings = await _companyService.GetAsync();
+        var events   = await _companyService.GetWhatsAppEventsAsync();
 
         var vm = new CompanySettingsViewModel
         {
@@ -36,7 +38,19 @@ public class CompanyController : Controller
             Email           = settings.Email,
             Website         = settings.Website,
             Notes           = settings.Notes,
-            CurrentLogoPath = settings.LogoPath
+            CurrentLogoPath = settings.LogoPath,
+            WhatsAppEnabled = settings.WhatsAppEnabled,
+            WhatsAppApiKey  = settings.WhatsAppApiKey,
+            WhatsAppApiUrl  = settings.WhatsAppApiUrl,
+            ReceptionModalSeconds = settings.ReceptionModalSeconds,
+            WhatsAppEvents  = events.Select(e => new WhatsAppEventViewModel
+            {
+                Id          = e.Id,
+                Label       = e.Label,
+                EventName   = e.EventName,
+                SystemEvent = (int)e.SystemEvent,
+                IsActive    = e.IsActive
+            }).ToList()
         };
 
         return View(vm);
@@ -47,7 +61,6 @@ public class CompanyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Settings(CompanySettingsViewModel vm)
     {
-        // IFormFile no participa de la validación de modelo
         ModelState.Remove(nameof(vm.LogoFile));
         ModelState.Remove(nameof(vm.CurrentLogoPath));
 
@@ -55,6 +68,12 @@ public class CompanyController : Controller
         {
             var current = await _companyService.GetAsync();
             vm.CurrentLogoPath = current.LogoPath;
+            vm.WhatsAppEvents  = (await _companyService.GetWhatsAppEventsAsync())
+                .Select(e => new WhatsAppEventViewModel
+                {
+                    Id = e.Id, Label = e.Label, EventName = e.EventName,
+                    SystemEvent = (int)e.SystemEvent, IsActive = e.IsActive
+                }).ToList();
             return View(vm);
         }
 
@@ -68,6 +87,12 @@ public class CompanyController : Controller
             ModelState.AddModelError(nameof(vm.LogoFile), ex.Message);
             var current = await _companyService.GetAsync();
             vm.CurrentLogoPath = current.LogoPath;
+            vm.WhatsAppEvents  = (await _companyService.GetWhatsAppEventsAsync())
+                .Select(e => new WhatsAppEventViewModel
+                {
+                    Id = e.Id, Label = e.Label, EventName = e.EventName,
+                    SystemEvent = (int)e.SystemEvent, IsActive = e.IsActive
+                }).ToList();
             return View(vm);
         }
 
@@ -82,5 +107,27 @@ public class CompanyController : Controller
         await _companyService.DeleteLogoAsync(_env.WebRootPath);
         TempData["Success"] = "Logotipo eliminado.";
         return RedirectToAction(nameof(Settings));
+    }
+
+    // ── AJAX: POST /Company/UpdateWhatsAppEvent ───────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateWhatsAppEvent([FromBody] WhatsAppEventViewModel vm)
+    {
+        if (string.IsNullOrWhiteSpace(vm.EventName))
+            return Json(new { success = false, error = "El nombre del evento es obligatorio." });
+
+        var evt = await _companyService.UpdateWhatsAppEventAsync(vm.Id, vm);
+        if (evt == null) return Json(new { success = false, error = "Evento no encontrado." });
+        return Json(new { success = true });
+    }
+
+    // ── AJAX: POST /Company/ToggleWhatsAppEvent ───────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleWhatsAppEvent([FromBody] int id)
+    {
+        var ok = await _companyService.ToggleWhatsAppEventAsync(id);
+        return Json(new { success = ok });
     }
 }

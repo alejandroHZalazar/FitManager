@@ -4,6 +4,8 @@
     ViewData["Title"] = "Vencimientos";
     ViewData["BreadcrumbParent"] = "Cuotas y Pagos";
 }
+@* Token para llamadas AJAX *@
+@Html.AntiForgeryToken()
 
 <div class="page-header">
     <div>
@@ -67,4 +69,45 @@
         <h5>¡Todo en orden!</h5>
         <p class="text-muted">No hay vencimientos próximos.</p>
     </div>
+}
+
+@section Scripts {
+<script>
+    const _waToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+    async function sendDebtNotice(memberId, endDate) {
+        const confirm = await Swal.fire({
+            title: '¿Enviar aviso de deuda?',
+            text: 'Se enviará un mensaje de WhatsApp al socio informando su deuda pendiente.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '<i class="fab fa-whatsapp me-1"></i>Enviar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#25d366'
+        });
+        if (!confirm.isConfirmed) return;
+
+        Swal.fire({ title: 'Enviando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+        try {
+            const res  = await fetch('/Alerts/SendDebtNotice', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': _waToken
+                },
+                body: JSON.stringify({ memberId, endDate })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                await Swal.fire({ icon: 'success', title: '¡Enviado!', text: 'Mensaje enviado correctamente.', timer: 2000, showConfirmButton: false });
+            } else {
+                await Swal.fire({ icon: 'error', title: 'Error al enviar', text: data.error ?? 'Error desconocido.' });
+            }
+        } catch (err) {
+            await Swal.fire({ icon: 'error', title: 'Error de red', text: err.message });
+        }
+    }
+</script>
 }

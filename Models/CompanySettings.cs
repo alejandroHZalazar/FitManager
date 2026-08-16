@@ -51,4 +51,24 @@ public class CompanySettings
     public string? Notes { get; set; }
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // ── Notificaciones WhatsApp ───────────────────────────────────────────────
+    /// <summary>Activa/desactiva todas las notificaciones WhatsApp de la empresa.</summary>
+    public bool WhatsAppEnabled { get; set; } = false;
+
+    /// <summary>API Key de la plataforma (ej. nf_xxxxxxxxxxxx).</summary>
+    [MaxLength(200)]
+    public string? WhatsAppApiKey { get; set; }
+
+    /// <summary>URL base de la API (ej. https://localhost:7275).</summary>
+    [MaxLength(300)]
+    public string? WhatsAppApiUrl { get; set; }
+
+    /// <summary>Eventos configurados — cada uno tiene su propio disparador y nombre de evento.</summary>
+    public ICollection<WhatsAppEvent> WhatsAppEvents { get; set; } = new List<WhatsAppEvent>();
+
+    // ── Recepción / kiosco ───────────────────────────────────────────────────
+    /// <summary>Segundos que permanece visible el modal de bienvenida en /Reception.</summary>
+    [Range(3, 60)]
+    public int ReceptionModalSeconds { get; set; } = 8;
 }

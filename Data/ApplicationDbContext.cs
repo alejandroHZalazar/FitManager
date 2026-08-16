@@ -26,8 +26,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ClassSchedule>   ClassSchedules   { get; set; }
     public DbSet<ClassEnrollment> ClassEnrollments { get; set; }
 
-    // ── Company ───────────────────────────────────────────────────────────────
+    // ── Company / WhatsApp ────────────────────────────────────────────────────
     public DbSet<CompanySettings> CompanySettings  { get; set; }
+    public DbSet<WhatsAppEvent>   WhatsAppEvents   { get; set; }
 
     // ── Routines module ───────────────────────────────────────────────────────
     public DbSet<Exercise>        Exercises        { get; set; }
@@ -272,6 +273,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
              .HasForeignKey(a => a.NutritionPlanId)
              .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(a => new { a.MemberId, a.IsActive });
+        });
+
+        // WhatsAppEvent
+        builder.Entity<WhatsAppEvent>(e =>
+        {
+            e.Property(w => w.SystemEvent).HasConversion<int>();
+            e.HasOne(w => w.Company)
+             .WithMany(c => c.WhatsAppEvents)
+             .HasForeignKey(w => w.CompanySettingsId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

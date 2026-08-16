@@ -4,7 +4,8 @@
 @{
     ViewData["Title"] = "Historial de Pagos";
     ViewData["BreadcrumbParent"] = "Cuotas y Pagos";
-    var filter = (PaymentFilterViewModel)ViewBag.Filter;
+    var filter      = (PaymentFilterViewModel)ViewBag.Filter;
+    var waEnabled   = (bool)(ViewBag.WhatsAppEnabled ?? false);
 }
 
 <div class="page-header">
@@ -143,6 +144,7 @@
                         <th>Vencimiento</th>
                         <th class="text-center">Acciones</th>
                         <th width="40"></th>
+                        @if (waEnabled) { <th width="44" title="WhatsApp"></th> }
                     </tr>
                 </thead>
                 <tbody>
@@ -198,6 +200,16 @@
                                     <i class="fas fa-print"></i>
                                 </a>
                             </td>
+                            @if (waEnabled)
+                            {
+                                <td class="text-center">
+                                    <button type="button"
+                                            class="btn btn-sm btn-icon btn-outline-success btn-wa-resend"
+                                            data-id="@p.Id" title="Reenviar comprobante por WhatsApp">
+                                        <i class="fab fa-whatsapp"></i>
+                                    </button>
+                                </td>
+                            }
                         </tr>
                     }
                 </tbody>
@@ -210,6 +222,8 @@
     @Html.AntiForgeryToken()
     <input type="hidden" id="deleteId" name="id" />
 </form>
+<!-- Token for AJAX WhatsApp resend -->
+@Html.AntiForgeryToken()
 
 @section Scripts {
 <script>
@@ -228,13 +242,51 @@
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
+            cancelButtonText: 'Cancelar',
+            background: '#1a1d27', color: '#e0e0e0'
         }).then(r => {
             if (r.isConfirmed) {
                 document.getElementById('deleteId').value = id;
                 document.getElementById('deleteForm').submit();
             }
         });
+    }
+
+    // ── WhatsApp resend ──────────────────────────────────────────────────────
+    @if (waEnabled)
+    {
+        <text>
+    $(document).on('click', '.btn-wa-resend', async function () {
+        const btn = $(this);
+        const id  = btn.data('id');
+        const icon = btn.find('i');
+        btn.prop('disabled', true);
+        icon.attr('class', 'fas fa-spinner fa-spin');
+
+        const token = $('input[name="__RequestVerificationToken"]').first().val();
+        try {
+            const res  = await fetch(`/Payments/ResendWhatsApp/${id}`, {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': token }
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success',
+                    title: 'WhatsApp enviado correctamente', timer: 3000,
+                    showConfirmButton: false, background: '#1a1d27', color: '#e0e0e0' });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error al enviar WhatsApp',
+                    text: data.error, background: '#1a1d27', color: '#e0e0e0' });
+            }
+        } catch (e) {
+            Swal.fire({ icon: 'error', title: 'Error de red', text: e.message,
+                background: '#1a1d27', color: '#e0e0e0' });
+        }
+
+        btn.prop('disabled', false);
+        icon.attr('class', 'fab fa-whatsapp');
+    });
+        </text>
     }
 </script>
 }

@@ -1,5 +1,6 @@
 using FitManager.Data;
 using FitManager.Models;
+using FitManager.Services;
 using FitManager.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace FitManager.Controllers;
 public class AlertsController : Controller
 {
     private readonly ApplicationDbContext _db;
+    private readonly IWhatsAppService    _whatsApp;
 
-    public AlertsController(ApplicationDbContext db)
+    public AlertsController(ApplicationDbContext db, IWhatsAppService whatsApp)
     {
-        _db = db;
+        _db       = db;
+        _whatsApp = whatsApp;
     }
 
     // GET: /Alerts/Expirations
@@ -23,38 +26,40 @@ public class AlertsController : Controller
         var today = DateTime.Today;
         var in5   = today.AddDays(5);
 
-        // Traer todos los MemberPlans activos con sus relaciones
-        var allActive = await _db.MemberPlans
-            .Include(mp => mp.Member)
-            .Include(mp => mp.Plan)
-            .Where(mp => mp.Status == MemberPlanStatus.Active)
+        // ── Fuente de verdad: Payments ───────────────────────────────────────
+        // El "vencimiento" de un socio = DueDate del pago más lejano.
+        // Se consideran pagos en cualquier estado (Paid/Pending/Overdue): el
+        // DueDate marca el fin de la cobertura aunque el pago no esté cobrado.
+        // El cobro se trata en /Alerts/Debts.
+        var allPayments = await _db.Payments
+            .Include(p => p.Member)
+            .Include(p => p.Plan)
+            .Where(p => p.Member!.Status == MemberStatus.Active)
             .ToListAsync();
 
-        // ── Lógica clave ────────────────────────────────────────────────────────
-        // Por socio, quedarse SOLO con el plan que tiene la fecha de vencimiento
-        // más lejana (el "plan vigente más importante").
-        // Si ese plan cubre el futuro → no hay alerta.
-        // Si ese plan vence en ≤5 días o ya venció → sí hay alerta.
-        var latestPerMember = allActive
-            .GroupBy(mp => mp.MemberId)
-            .Select(g => g.OrderByDescending(mp => mp.EndDate).First())
+        // Por socio, quedarse con el pago de DueDate más lejana.
+        // Mientras el socio esté activo y no haya pagos posteriores, este pago
+        // sigue marcando el vencimiento (aunque hayan pasado varios días).
+        var latestPerMember = allPayments
+            .GroupBy(p => p.MemberId)
+            .Select(g => g.OrderByDescending(p => p.DueDate).First())
             .ToList();
 
         var vm = new AlertsViewModel
         {
             ExpiringToday = latestPerMember
-                .Where(mp => mp.EndDate.Date == today)
-                .OrderBy(mp => mp.Member!.LastName)
+                .Where(p => p.DueDate.Date == today)
+                .OrderBy(p => p.Member!.LastName)
                 .Select(ToAlert).ToList(),
 
             ExpiringIn5Days = latestPerMember
-                .Where(mp => mp.EndDate.Date > today && mp.EndDate.Date <= in5)
-                .OrderBy(mp => mp.EndDate)
+                .Where(p => p.DueDate.Date > today && p.DueDate.Date <= in5)
+                .OrderBy(p => p.DueDate)
                 .Select(ToAlert).ToList(),
 
             AlreadyExpired = latestPerMember
-                .Where(mp => mp.EndDate.Date < today)
-                .OrderBy(mp => mp.EndDate)
+                .Where(p => p.DueDate.Date < today)
+                .OrderBy(p => p.DueDate)
                 .Select(ToAlert).ToList(),
 
             OverduePayments = new List<DebtAlert>()
@@ -105,15 +110,32 @@ public class AlertsController : Controller
         return View(vm);
     }
 
-    private static MemberPlanAlert ToAlert(MemberPlan mp) => new()
+    // ── AJAX: POST /Alerts/SendDebtNotice ────────────────────────────────────────
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendDebtNotice([FromBody] DebtNoticeRequest req)
     {
-        MemberId        = mp.Member!.Id,
-        MemberNumber    = mp.Member.MemberNumber,
-        MemberName      = mp.Member.FullName,
-        MemberPhoto     = mp.Member.PhotoPath,
-        PlanName        = mp.Plan!.Name,
-        EndDate         = mp.EndDate,
-        DaysUntilExpiry = (mp.EndDate.Date - DateTime.Today).Days,
-        Status          = mp.Status
+        var (ok, err) = await _whatsApp.SendDebtNoticeAsync(req.MemberId, req.EndDate);
+        return Json(new { success = ok, error = err });
+    }
+
+    private static MemberPlanAlert ToAlert(Payment p) => new()
+    {
+        MemberId        = p.Member!.Id,
+        MemberNumber    = p.Member.MemberNumber,
+        MemberName      = p.Member.FullName,
+        MemberPhoto     = p.Member.PhotoPath,
+        PlanName        = p.Plan?.Name ?? p.Description ?? "Pago libre",
+        EndDate         = p.DueDate,
+        DaysUntilExpiry = (p.DueDate.Date - DateTime.Today).Days,
+        Status          = p.DueDate.Date < DateTime.Today
+                          ? MemberPlanStatus.Expired
+                          : MemberPlanStatus.Active
     };
+}
+
+public class DebtNoticeRequest
+{
+    public int      MemberId { get; set; }
+    public DateTime EndDate  { get; set; }
 }

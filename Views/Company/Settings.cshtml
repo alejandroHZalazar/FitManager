@@ -190,6 +190,151 @@
                 </div>
             </div>
 
+            <!-- ── Recepción / Kiosco ─────────────────────────────────────────── -->
+            <div class="card fm-card mb-4">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="fas fa-door-open text-accent fs-5"></i>
+                    <h5 class="card-title mb-0">Pantalla de Recepción</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="ReceptionModalSeconds" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="ReceptionModalSeconds" type="number" min="3" max="60"
+                                       class="form-control" />
+                                <span class="input-group-text">seg</span>
+                            </div>
+                            <div class="form-text">
+                                Duración del modal de bienvenida en <code>/Reception</code>. Entre 3 y 60 segundos.
+                            </div>
+                            <span asp-validation-for="ReceptionModalSeconds" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── WhatsApp ──────────────────────────────────────────────────── -->
+            <div class="card fm-card mb-4">
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="fab fa-whatsapp text-success fs-5"></i>
+                    <h5 class="card-title mb-0">Notificaciones por WhatsApp</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Toggle habilitado -->
+                    <div class="form-check form-switch mb-3">
+                        <input asp-for="WhatsAppEnabled" class="form-check-input" type="checkbox"
+                               id="waEnabledSwitch" role="switch" />
+                        <label class="form-check-label" for="waEnabledSwitch">
+                            Habilitar envío de notificaciones por WhatsApp
+                        </label>
+                    </div>
+
+                    <div id="waFields">
+                        <div class="row g-3 mb-4">
+                            <div class="col-12">
+                                <label asp-for="WhatsAppApiUrl" class="form-label">URL de la API</label>
+                                <input asp-for="WhatsAppApiUrl" class="form-control"
+                                       placeholder="https://localhost:7275" />
+                                <div class="form-text">URL base de la API (ej. <code>https://localhost:7275</code>). Sin barra final.</div>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="WhatsAppApiKey" class="form-label">API Key</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                    <input asp-for="WhatsAppApiKey" class="form-control" type="password"
+                                           id="waApiKeyInput" placeholder="nf_xxxxxxxxxxxx" autocomplete="off" />
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            onclick="toggleWaKey()" title="Mostrar/ocultar">
+                                        <i class="fas fa-eye" id="waKeyEyeIcon"></i>
+                                    </button>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(Model.WhatsAppApiKey))
+                                {
+                                    <div class="form-text">
+                                        <i class="fas fa-check-circle text-success me-1"></i>
+                                        API Key configurada. Dejá el campo vacío para conservar la clave actual.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="form-text">Ingresá tu API Key de WhatsApp.</div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- ── Tabla de eventos ─────────────────────────────── -->
+                        <div class="mb-2">
+                            <h6 class="mb-0"><i class="fas fa-bolt me-1 text-accent"></i>Eventos configurados</h6>
+                            <div class="form-text">Los eventos son definidos por el sistema. Activá/desactivá cada uno y configurá el nombre del evento en tu plataforma WhatsApp.</div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover fm-table mb-0" id="waEventsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Descripción</th>
+                                        <th>Nombre del evento (plataforma)</th>
+                                        <th class="text-center">Activo</th>
+                                        <th class="text-center" style="width:60px">Config.</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="waEventsTbody">
+                                    @foreach (var e in Model.WhatsAppEvents)
+                                    {
+                                        <tr id="waRow-@e.Id">
+                                            <td>@e.Label</td>
+                                            <td><code id="waCode-@e.Id">@e.EventName</code></td>
+                                            <td class="text-center">
+                                                <span class="badge @(e.IsActive ? "bg-success" : "bg-secondary") badge-wa-status"
+                                                      style="cursor:pointer" onclick="toggleWaEvent(@e.Id)"
+                                                      title="Click para activar/desactivar">
+                                                    @(e.IsActive ? "Sí" : "No")
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-sm btn-icon btn-outline-secondary"
+                                                        onclick="editWaEvent(@e.Id,'@Html.Raw(e.EventName.Replace("'","\\'"))')"
+                                                        title="Configurar nombre del evento">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Modal Configurar evento ──────────────────────────────────── -->
+            <div class="modal fade" id="waEventModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content" style="background:#1a1d27;border-color:#333;">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title"><i class="fab fa-whatsapp text-success me-2"></i>Configurar evento</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" id="waEvtId" value="0" />
+                            <div class="mb-3">
+                                <label class="form-label">Nombre del evento (plataforma) <span class="text-danger">*</span></label>
+                                <input type="text" id="waEvtEventName" class="form-control"
+                                       placeholder="Ej. pago_confirmado" />
+                                <div class="form-text">Nombre exacto del evento configurado en la API de WhatsApp.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-secondary">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-accent" id="btnSaveWaEvent">
+                                <i class="fas fa-save me-1"></i>Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex gap-2 justify-content-end">
                 <button type="submit" class="btn btn-accent px-4">
                     <i class="fas fa-save me-2"></i>Guardar Configuración
@@ -201,6 +346,27 @@
 
 @section Scripts {
 <script>
+// ── WhatsApp fields toggle ────────────────────────────────────────────────────
+(function () {
+    var sw     = document.getElementById('waEnabledSwitch');
+    var fields = document.getElementById('waFields');
+    function updateFields() { fields.style.display = sw.checked ? '' : 'none'; }
+    sw.addEventListener('change', updateFields);
+    updateFields();
+})();
+
+function toggleWaKey() {
+    var inp  = document.getElementById('waApiKeyInput');
+    var icon = document.getElementById('waKeyEyeIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        inp.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
 // ── Preview de logo en tiempo real ────────────────────────────────────────────
 document.getElementById('logoFileInput')?.addEventListener('change', function () {
     const file = this.files[0];
@@ -242,6 +408,86 @@ document.getElementById('btnDeleteLogo')?.addEventListener('click', function () 
         title: '@TempData["Success"]', showConfirmButton: false,
         timer: 3500, background: '#1a1d27', color: '#e0e0e0' });
     </text>
+}
+
+// ── WhatsApp events ───────────────────────────────────────────────────────────
+var waModal  = new bootstrap.Modal(document.getElementById('waEventModal'));
+var waEditId = 0;
+
+function getToken() {
+    return document.querySelector('input[name="__RequestVerificationToken"]').value;
+}
+
+// ── Abrir modal para configurar nombre del evento ─────────────────────────────
+function editWaEvent(id, eventName) {
+    waEditId = id;
+    document.getElementById('waEvtId').value        = id;
+    document.getElementById('waEvtEventName').value = eventName;
+    waModal.show();
+}
+
+// ── Guardar nombre del evento ─────────────────────────────────────────────────
+document.getElementById('btnSaveWaEvent').addEventListener('click', async function () {
+    var eventName = document.getElementById('waEvtEventName').value.trim();
+
+    if (!eventName) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning',
+            title: 'El nombre del evento es obligatorio.',
+            showConfirmButton: false, timer: 3000,
+            background: '#1a1d27', color: '#e0e0e0' });
+        return;
+    }
+
+    try {
+        var resp = await fetch('/Company/UpdateWhatsAppEvent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json',
+                       'RequestVerificationToken': getToken() },
+            body: JSON.stringify({ id: waEditId, eventName })
+        });
+        var data = await resp.json();
+
+        if (!data.success) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'error',
+                title: data.error || 'Error al guardar.', showConfirmButton: false,
+                timer: 3500, background: '#1a1d27', color: '#e0e0e0' });
+            return;
+        }
+
+        // Actualizar el <code> en la fila
+        var code = document.getElementById('waCode-' + waEditId);
+        if (code) code.textContent = eventName;
+
+        waModal.hide();
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success',
+            title: 'Evento actualizado.', showConfirmButton: false,
+            timer: 2500, background: '#1a1d27', color: '#e0e0e0' });
+
+    } catch (e) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'error',
+            title: 'Error de red.', showConfirmButton: false,
+            timer: 3000, background: '#1a1d27', color: '#e0e0e0' });
+    }
+});
+
+// ── Activar / desactivar evento ───────────────────────────────────────────────
+async function toggleWaEvent(id) {
+    try {
+        var resp = await fetch('/Company/ToggleWhatsAppEvent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json',
+                       'RequestVerificationToken': getToken() },
+            body: JSON.stringify(id)
+        });
+        var data = await resp.json();
+        if (!data.success) return;
+
+        var badge = document.querySelector('#waRow-' + id + ' .badge-wa-status');
+        if (!badge) return;
+        var isActive = badge.textContent.trim() === 'Sí';
+        badge.textContent = isActive ? 'No' : 'Sí';
+        badge.className   = 'badge ' + (isActive ? 'bg-secondary' : 'bg-success') + ' badge-wa-status';
+    } catch (e) { /* silencioso */ }
 }
 </script>
 }

@@ -2,6 +2,7 @@ using FitManager.Data;
 using FitManager.Models;
 using FitManager.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace FitManager.Services;
 
@@ -28,19 +29,25 @@ public class CompanyService : ICompanyService
     {
         var settings = await GetAsync();
 
-        settings.Name      = vm.Name;
-        settings.Slogan    = vm.Slogan;
-        settings.Address   = vm.Address;
-        settings.City      = vm.City;
-        settings.Province  = vm.Province;
-        settings.Country   = vm.Country;
-        settings.TaxId     = vm.TaxId;
-        settings.Phone     = vm.Phone;
-        settings.Phone2    = vm.Phone2;
-        settings.Email     = vm.Email;
-        settings.Website   = vm.Website;
-        settings.Notes     = vm.Notes;
-        settings.UpdatedAt = DateTime.UtcNow;
+        settings.Name             = vm.Name;
+        settings.Slogan           = vm.Slogan;
+        settings.Address          = vm.Address;
+        settings.City             = vm.City;
+        settings.Province         = vm.Province;
+        settings.Country          = vm.Country;
+        settings.TaxId            = vm.TaxId;
+        settings.Phone            = vm.Phone;
+        settings.Phone2           = vm.Phone2;
+        settings.Email            = vm.Email;
+        settings.Website          = vm.Website;
+        settings.Notes            = vm.Notes;
+        settings.WhatsAppEnabled  = vm.WhatsAppEnabled;
+        // Solo actualizar si el usuario ingresó un nuevo valor; si llega vacío, conservar el existente
+        if (!string.IsNullOrWhiteSpace(vm.WhatsAppApiKey))
+            settings.WhatsAppApiKey = vm.WhatsAppApiKey.Trim();
+        settings.WhatsAppApiUrl   = vm.WhatsAppApiUrl?.TrimEnd('/');
+        settings.ReceptionModalSeconds = vm.ReceptionModalSeconds;
+        settings.UpdatedAt        = DateTime.UtcNow;
 
         if (vm.LogoFile != null && vm.LogoFile.Length > 0)
         {
@@ -88,5 +95,59 @@ public class CompanyService : ICompanyService
         settings.LogoPath  = null;
         settings.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+    }
+
+    // ── WhatsApp events ───────────────────────────────────────────────────────
+
+    public Task<List<WhatsAppEvent>> GetWhatsAppEventsAsync() =>
+        _db.WhatsAppEvents
+           .OrderBy(e => e.SystemEvent)
+           .ToListAsync();
+
+    public async Task<WhatsAppEvent> AddWhatsAppEventAsync(WhatsAppEventViewModel vm)
+    {
+        var evt = new WhatsAppEvent
+        {
+            CompanySettingsId = 1,
+            Label             = vm.Label.Trim(),
+            EventName         = vm.EventName.Trim(),
+            SystemEvent       = (WhatsAppSystemEvent)vm.SystemEvent,
+            IsActive          = vm.IsActive,
+            CreatedAt         = DateTime.UtcNow
+        };
+        _db.WhatsAppEvents.Add(evt);
+        await _db.SaveChangesAsync();
+        return evt;
+    }
+
+    public async Task<WhatsAppEvent?> UpdateWhatsAppEventAsync(int id, WhatsAppEventViewModel vm)
+    {
+        var evt = await _db.WhatsAppEvents.FindAsync(id);
+        if (evt == null) return null;
+
+        // El usuario solo puede cambiar EventName e IsActive; Label y SystemEvent son del desarrollador.
+        evt.EventName = vm.EventName.Trim();
+        evt.IsActive  = vm.IsActive;
+
+        await _db.SaveChangesAsync();
+        return evt;
+    }
+
+    public async Task<bool> DeleteWhatsAppEventAsync(int id)
+    {
+        var evt = await _db.WhatsAppEvents.FindAsync(id);
+        if (evt == null) return false;
+        _db.WhatsAppEvents.Remove(evt);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> ToggleWhatsAppEventAsync(int id)
+    {
+        var evt = await _db.WhatsAppEvents.FindAsync(id);
+        if (evt == null) return false;
+        evt.IsActive = !evt.IsActive;
+        await _db.SaveChangesAsync();
+        return true;
     }
 }

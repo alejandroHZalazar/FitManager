@@ -9,13 +9,18 @@ namespace FitManager.Controllers;
 [Authorize]
 public class MembersController : Controller
 {
-    private readonly IMemberService _memberService;
-    private readonly IPaymentService _paymentService;
+    private readonly IMemberService       _memberService;
+    private readonly IPaymentService      _paymentService;
+    private readonly ICompanyService      _companyService;
+    private readonly IServiceScopeFactory _scopeFactory;  // para Task.Run (scope propio)
 
-    public MembersController(IMemberService memberService, IPaymentService paymentService)
+    public MembersController(IMemberService memberService, IPaymentService paymentService,
+                              ICompanyService companyService, IServiceScopeFactory scopeFactory)
     {
-        _memberService = memberService;
+        _memberService  = memberService;
         _paymentService = paymentService;
+        _companyService = companyService;
+        _scopeFactory   = scopeFactory;
     }
 
     // GET: /Members
@@ -94,6 +99,9 @@ public class MembersController : Controller
         var payments = await _paymentService.GetByMemberAsync(id);
         var (paid, pending) = await _paymentService.GetTotalsAsync(id);
 
+        var company = await _companyService.GetAsync();
+        ViewBag.WhatsAppEnabled = company.WhatsAppEnabled;
+
         var model = new MemberPaymentsViewModel
         {
             Member = MapToViewModel(member),
@@ -127,6 +135,20 @@ public class MembersController : Controller
         var payment = await _paymentService.CreateAsync(vm, User.Identity?.Name ?? "system");
         TempData["Success"]      = "Pago registrado exitosamente.";
         TempData["NewPaymentId"] = payment.Id;
+
+        // Notificación WhatsApp (en background, scope propio para evitar DbContext dispuesto)
+        var paymentId = payment.Id;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var whatsApp = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                await whatsApp.SendPaymentNotificationAsync(paymentId);
+            }
+            catch { /* log ya está en el servicio */ }
+        });
+
         return RedirectToAction(nameof(Payments), new { id = vm.MemberId });
     }
 

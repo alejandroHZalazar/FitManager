@@ -61,4 +61,33 @@ public class CompanySettingsViewModel
 
     // Populated from DB for display
     public string? CurrentLogoPath { get; set; }
+
+    // ── Notificaciones WhatsApp ───────────────────────────────────────────────
+    [Display(Name = "Habilitar notificaciones por WhatsApp")]
+    public bool WhatsAppEnabled { get; set; }
+
+    [MaxLength(200)]
+    [Display(Name = "API Key")]
+    public string? WhatsAppApiKey { get; set; }
+
+    [MaxLength(300)]
+    [Display(Name = "URL de la API")]
+    public string? WhatsAppApiUrl { get; set; }
+
+    /// <summary>Lista de eventos configurados (se carga para mostrar en la UI).</summary>
+    public List<WhatsAppEventViewModel> WhatsAppEvents { get; set; } = new();
+
+    // ── Recepción / kiosco ───────────────────────────────────────────────────
+    [Range(3, 60, ErrorMessage = "Debe estar entre 3 y 60 segundos")]
+    [Display(Name = "Segundos de visualización del modal de recepción")]
+    public int ReceptionModalSeconds { get; set; } = 8;
+}
+
+public class WhatsAppEventViewModel
+{
+    public int    Id          { get; set; }
+    public string Label       { get; set; } = string.Empty;
+    public string EventName   { get; set; } = string.Empty;
+    public int    SystemEvent { get; set; } = 1;
+    public bool   IsActive    { get; set; } = false;
 }

@@ -156,6 +156,9 @@ public static class DbInitializer
             await db.SaveChangesAsync();
         }
 
+        // ── WhatsApp events pre-definidos (definidos por el desarrollador) ───────
+        await SeedWhatsAppEventsAsync(db);
+
         // ── Ejercicios predefinidos ───────────────────────────────────────────
         if (!await db.Exercises.AnyAsync())
         {
@@ -220,6 +223,47 @@ public static class DbInitializer
             db.Exercises.AddRange(exercises);
             await db.SaveChangesAsync();
         }
+    }
+
+    // ── WhatsApp events pre-definidos ─────────────────────────────────────────
+    /// <summary>
+    /// Asegura que los eventos de WhatsApp definidos por el desarrollador existan en la BD.
+    /// El usuario solo puede cambiar EventName e IsActive; Label y SystemEvent son inmutables.
+    /// </summary>
+    private static async Task SeedWhatsAppEventsAsync(ApplicationDbContext db)
+    {
+        var defined = new[]
+        {
+            new { SystemEvent = WhatsAppSystemEvent.PaymentConfirmation, Label = "Confirmación de Pago",       DefaultEventName = "pago_confirmado"   },
+            new { SystemEvent = WhatsAppSystemEvent.DueDateReminder,     Label = "Aviso de Vencimiento Cuota", DefaultEventName = "aviso_vencimiento" },
+            new { SystemEvent = WhatsAppSystemEvent.DebtNotice,          Label = "Aviso de Deuda",             DefaultEventName = "aviso_deuda"       },
+        };
+
+        foreach (var d in defined)
+        {
+            var existing = await db.WhatsAppEvents
+                .FirstOrDefaultAsync(e => e.SystemEvent == d.SystemEvent);
+
+            if (existing == null)
+            {
+                db.WhatsAppEvents.Add(new WhatsAppEvent
+                {
+                    CompanySettingsId = 1,
+                    Label             = d.Label,
+                    EventName         = d.DefaultEventName,
+                    SystemEvent       = d.SystemEvent,
+                    IsActive          = false,
+                    CreatedAt         = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                // Actualizar el Label si el desarrollador lo cambió (EventName e IsActive se respetan)
+                existing.Label = d.Label;
+            }
+        }
+
+        await db.SaveChangesAsync();
     }
 
     // ── Incremental menu seed ─────────────────────────────────────────────────
