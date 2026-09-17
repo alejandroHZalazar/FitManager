@@ -31,9 +31,22 @@ public class MemberService : IMemberService
 
     public async Task<string> GenerateMemberNumberAsync()
     {
-        var year = DateTime.Today.Year;
-        var count = await _db.Members.CountAsync(m => m.MembershipStartDate.Year == year);
-        return $"FM-{year}-{(count + 1):D4}";
+        var year   = DateTime.Today.Year;
+        var prefix = $"FM-{year}-";
+
+        // Basarse en el máximo secuencial ya emitido (no en COUNT), para no
+        // colisionar con números existentes cuando hay socios eliminados.
+        var sequences = await _db.Members
+            .Where(m => m.MemberNumber.StartsWith(prefix))
+            .Select(m => m.MemberNumber.Substring(prefix.Length))
+            .ToListAsync();
+
+        var next = sequences
+            .Select(s => int.TryParse(s, out var n) ? n : 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        return $"{prefix}{next:D4}";
     }
 
     public async Task<bool> ExistsDNIAsync(string dni, int? excludeId = null)
